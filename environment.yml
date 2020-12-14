@@ -1,0 +1,9 @@
+name: vesicle_imaging
+channels:
+  - defaults
+dependencies:
+#  - biopython=1.78
+#  - pip=20.2.3
+#  - python=3.8.5
+#  - pip:
+#    - -e .
