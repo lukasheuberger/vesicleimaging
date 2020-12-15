@@ -125,5 +125,5 @@ dmypy.json
 .pyre/
 /testdata/
 /.idea/
-.DS_store
-!/example_notebook.ipynb
+.DS_Store
+example_notebook.ipynb
