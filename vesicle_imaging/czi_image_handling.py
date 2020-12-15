@@ -181,5 +181,5 @@ def disp_scaling(img_add_metadata):
     for index, image in enumerate(img_add_metadata):
         scale = image[0]['Experiment']['ExperimentBlocks']['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
         scaling_x.append(scale)
-    print(scaling_x)
+    # print('scale factor: ', scaling_x)
     return scaling_x

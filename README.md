@@ -21,6 +21,8 @@ It is currently under construction...
 - lightweight czi to png converter with scalebar
 - make napari work again with big sur openGL
 - add environment.yaml to create a working virtualenv
+- calculate from scaling and image size the expected GUV size and use this to detect GUVs instead of manual input
+- improve statistics (mean, average, maybe boxplot, normalizing, ...)
 
 ### performance 
 - use multithreading / multiprocessing

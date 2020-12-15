@@ -40,8 +40,6 @@ def detect_params(zstack, distance_from_border, zimage, dp, minDist, minRadius, 
                 circle_detected = True
                 # print('circle detected with ', param1, param2)
                 break
-            # else:
-                # print('no circle detected: ', param1, param2)
         if circle_detected == True:
             break
 
@@ -113,6 +111,8 @@ def measure_intensity_circle(circles, detection_image, distance_from_border ):
         # plt.imshow(image[0])
         output = img.copy()  # output on vis image
         pixels_in_circle = []
+        print('slice: ', index)
+
         if circles[index] is not None:
             for circle in circles[index]:
 
@@ -137,6 +137,7 @@ def measure_intensity_circle(circles, detection_image, distance_from_border ):
                             pixel_val = img[dy][dx]  # measurement on GFP image (= 0)
                             pixels_in_circle.append(pixel_val)
                 cv2.circle(output, (x_0, y_0), (measurement_radius), (255, 255, 255), 2)  # x,y,radius
+            print('slice: ', index)
             print('min: ', np.min(pixels_in_circle))
             print('max: ', np.max(pixels_in_circle))
             print('average: ', np.mean(pixels_in_circle))
@@ -156,4 +157,4 @@ def measure_intensity_circle(circles, detection_image, distance_from_border ):
     #    plt.axis('off')
     # plt.imsave('output.png',output,cmap='hot')
 
-    print(average_per_img)
+    return average_per_img
