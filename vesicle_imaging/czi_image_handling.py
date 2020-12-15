@@ -133,7 +133,7 @@ def disp_channels(img_add_metadata, type):
                 channels.append(channel_name)
             else:
                 channels.append('Vis')
-            print('------------------------------------')
+            print('-------------------------------------')
         print(channels)
     if type == 'MultiTrack':
         # channels are the same for all conditions
@@ -183,14 +183,3 @@ def disp_scaling(img_add_metadata):
         scaling_x.append(scale)
     print(scaling_x)
     return scaling_x
-
-def test_get_files():
-    path = '/Users/lukasheuberger/switchdrive/08_code/image_analysis/testdata'
-    files, filenames = get_files(path)
-    for filename in filenames:
-        print (filename)
-    print (files, filenames)
-
-if __name__ == "__main__":
-    print(get_files("/Users/lukasheuberger/switchdrive/08_code/testdata"))
-
