@@ -123,6 +123,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# custom
 /testdata/
 /.idea/
 .DS_Store
