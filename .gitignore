@@ -126,3 +126,4 @@ dmypy.json
 /testdata/
 /.idea/
 .DS_store
+!/example_notebook.ipynb
