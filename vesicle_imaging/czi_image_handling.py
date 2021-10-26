@@ -1,11 +1,10 @@
 """Basic czi image handling and information extration."""
 
-
 import czifile
 import os
 import xml.etree.ElementTree as ET
 from vesicle_imaging import imgfileutils as imf
-
+import cv2
 
 def get_files(path: str):
     files = []
@@ -15,9 +14,10 @@ def get_files(path: str):
         f.sort()
         for file in f:
             if '.czi' in file:
-                filenames.append(file)
-                file_path = os.path.join(r, file)
-                files.append(file_path)
+                if not file.startswith('.'):
+                    filenames.append(file)
+                    file_path = os.path.join(r, file)
+                    files.append(file_path)
     return files, filenames
 
 def write_metadata_xml(path: str, files: list):
@@ -68,6 +68,7 @@ def extract_channels_xy(img_data: list):
         channels_xy = []
         for image in img:
             channels_xy.append(image[0, 0, :, 0, 0, :, :])
+            #channels_xy.append(image[:, :, :])
         img_xy_data.append(channels_xy)
     print ('image XY data extracted')
     return img_xy_data
@@ -135,6 +136,7 @@ def disp_channels(img_add_metadata, type):
                 channels.append('Vis')
             print('-------------------------------------')
         print(channels)
+        return channels
     if type == 'MultiTrack':
         # channels are the same for all conditions
         channels = []
@@ -183,3 +185,16 @@ def disp_scaling(img_add_metadata):
         scaling_x.append(scale)
     # print('scale factor: ', scaling_x)
     return scaling_x
+
+
+def increase_brightness(img, value=30):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    lim = 255 - value
+    v[v > lim] = 255
+    v[v <= lim] += value
+
+    final_hsv = cv2.merge((h, s, v))
+    img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    return img

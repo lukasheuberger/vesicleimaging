@@ -53,6 +53,8 @@ def detect_params(zstack, distance_from_border, zimage, dp, minDist, minRadius, 
         cv2.rectangle(output, (x - 2, y - 2), (x + 2, y + 2), (255, 255, 255), -1)
 
     plt.imshow(output, cmap='hot')
+    print ('param1: ', param1)
+    print ('param2: ', param2)
     return param1, param2
 
 def detect_stack_circles(zstack, dp, minDist, minRadius, maxRadius, param1, param2):

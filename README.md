@@ -11,13 +11,14 @@ It is currently under construction...
 - linting
 
 ### misc
+- make file selection and handling easier
 - adapt algorithm detect inner and outer diameter
 - fix metadata load to incorporate all metadata (part is commented in imgfileutils.py)
 - pre-filtering for better houghes circles outcome
 - hough circles should compare output of generated circles and improve params so that they are uniform (in case of uniform sample)
 - manual interaction to deselect single circles
 - make log that is put out with the most important parameters to analyze data
-- make individial filenames for output (e.g. XXXX_analysis)
+- make individual filenames for output (e.g. XXXX_analysis)
 - lightweight czi to png converter with scalebar
 - make napari work again with big sur openGL
 - add environment.yaml to create a working virtualenv

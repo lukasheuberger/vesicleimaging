@@ -7,10 +7,10 @@ import cv2
 import numpy as np
 from skimage import img_as_ubyte
 from vesicle_imaging import czi_image_handling as img_handler
-
+import os
 
 def plot_images(img_xy_data, img_add_metadata, img_metadata, saving_on, channels):
-    scaling_x = img_handler.disp_scaling(img_add_metadata)
+    #scaling_x = img_handler.disp_scaling(img_add_metadata)
     format.formatLH()
     for index, img in enumerate(img_xy_data):
         # print ('image:', img)
@@ -19,26 +19,27 @@ def plot_images(img_xy_data, img_add_metadata, img_metadata, saving_on, channels
         for channel in range(0, len(image)):
             # print ('channel:',channel)
             temp_filename = img_metadata[index][0]['Filename'].replace('.czi', '')
-            output_filename = ''.join(['analysis/', temp_filename, '_', channels[channel], '.png'])
+            title_filename = ''.join([temp_filename, '_', channels[channel]])
+            output_filename = ''.join(['analysis/', title_filename, '.png'])
             # print ('index + channel', index*3 + channel + 1)
             fig = plt.figure(figsize=(5, 5), frameon=False)
             fig.tight_layout(pad=0)
             # subfig_counter = index*3 + channel
             plt.imshow(image[channel], cmap='gray')
             plt.axis('off')
-            plt.title(output_filename)
+            plt.title(title_filename)
             # print(filename_counter)
             # if filename_counter < 1: #so only top two images have channel names
             #    axs[subfig_counter].title.set_text(channel_names[channel])
-            scalebar = ScaleBar(dx=scaling_x[index], location='lower right', fixed_value=30,
-                                fixed_units='µm', frameon = False, color = 'w')  # 1 pixel = scale [m]
-            plt.gca().add_artist(scalebar)
+            #scalebar = ScaleBar(dx=scaling_x[index], location='lower right', fixed_value=30,
+            #                    fixed_units='µm', frameon = False, color = 'w')  # 1 pixel = scale [m]
+            #plt.gca().add_artist(scalebar)
 
             if saving_on == True:
                 # print(output_filename)
                 plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
 
-def detect_circles(img_xy_data, img_metadata, hough_saving, param1_array, param2_array, display_channel, detection_channel):
+def detect_circles(img_xy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel, detection_channel):
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     circles = []
     for index, img in enumerate(img_xy_data):
@@ -51,12 +52,15 @@ def detect_circles(img_xy_data, img_metadata, hough_saving, param1_array, param2
             print ('done converting to uint8')
 
         output = image[display_channel].copy()  # output on vis image
+        #output = [x + 30 for x in output]
+        #output = map(lambda x: x+30, output)
+        #output = list(np.asarray(output) + 30)
         # detect circles in the image
         circle = cv2.HoughCircles(image[detection_channel], cv2.HOUGH_GRADIENT,  # detection on vis image
                                   dp=2,
-                                  minDist=100,
-                                  minRadius=100,
-                                  maxRadius=130, # todo: include min and max radius in input
+                                  minDist=minmax[1] + 10,
+                                  minRadius=minmax[0],
+                                  maxRadius=minmax[1],
                                   param1=param1_array[index],
                                   param2=param2_array[index])
         # the bigger param1, the fewer circles may be detected
@@ -77,13 +81,76 @@ def detect_circles(img_xy_data, img_metadata, hough_saving, param1_array, param2
 
         fig = plt.figure(figsize=(5, 5), frameon=False)
         fig.tight_layout(pad=0)
-        plt.imshow(output, cmap='gray')
+        plt.imshow(output, cmap='gray')#, vmin=0, vmax=20)
         plt.axis('off')
 
         if hough_saving == True:
+            try:
+                os.mkdir('analysis/HoughCircles')
+            except FileExistsError:
+                pass
             temp_filename = img_metadata[index][0]['Filename'].replace('.czi', '')
-            output_filename = ''.join(['analysis/', temp_filename, '_houghcircles.png'])
+            output_filename = ''.join(['analysis/HoughCircles/', temp_filename, '_houghcircles.png'])
             # print(output_filename)
-            plt.imsave(output_filename, output, cmap='hot')
+            plt.imsave(output_filename, output, cmap='gray')#, vmin=0, vmax=20)
+
+        print ('______________________')
 
     return circles
+
+def measure_circles(image_xy_data, distance_from_border=20, excel_saving = True):
+    img_counter = 0
+    average_per_img = []
+
+    for index, img in enumerate(image_xy_data):
+        image = img[0]
+        # plt.imshow(image[0])
+        output = image[1].copy()  # output on vis image
+        pixels_in_circle = []
+        if detected_circles[index] is not None:
+            for circle in detected_circles[index]:
+
+                # print (circle)
+                # test_circle = [ 163, 1487,  108] # x,y,radius
+                x_0 = circle[0]
+                y_0 = circle[1]
+                radius = circle[2]
+
+                # make radius slighly smaller so border is not in range
+                measurement_radius = radius - distance_from_border  # [index]
+                # print (measurement_radius)
+
+                for x in range(x_0 - measurement_radius, x_0 + measurement_radius):
+                    for y in range(y_0 - measurement_radius, y_0 + measurement_radius):
+                        dx = x - circle[0]
+                        dy = y - circle[1]
+                        distanceSquared = dx ** 2 + dy ** 2
+                        # print (distanceSquared)
+                        if distanceSquared <= (measurement_radius ** 2):
+                            # img_five[0][0] = first image, fluorescein channel
+                            pixel_val = image[0][dy][dx]  # measurement on GFP image (= 0)
+                            pixels_in_circle.append(pixel_val)
+                cv2.circle(output, (x_0, y_0), (measurement_radius), (255, 255, 255), 2)  # x,y,radius
+            print('filename: ', filenames[index])
+            print('no. of GUVs counted: ', len(detected_circles[index]))
+            print('number of pixels: ', len(pixels_in_circle))
+            print('min: ', np.min(pixels_in_circle))
+            print('max: ', np.max(pixels_in_circle))
+            print('average: ', np.mean(pixels_in_circle))
+            print('stdev: ', np.std(pixels_in_circle))
+            print('--------------------')
+        else:
+            print('no circles were detected')
+        img_average = np.average(pixels_in_circle)
+        img_stdev = np.std(pixels_in_circle)
+
+        # print (img_average, img_stdev)
+        average_per_img.append(img_average)  # <, img_stdev])
+
+        fig = plt.figure(figsize=(10, 10), frameon=False)
+        fig.tight_layout(pad=0)
+        plt.imshow(output, cmap='gray')
+        plt.axis('off')
+        # plt.imsave('output.png',output,cmap='hot')
+
+        print(average_per_img)

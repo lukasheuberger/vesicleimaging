@@ -1,4 +1,4 @@
-def formatLH(figsizex = 2, figsizey = 2):
+def formatLH(figsizex = 2, figsizey = 2, frame = False):
     """
       :param: figsizex, integer specifying how many figures should be next to each other in x-direction
       :param: figsizey, integer specifying how many figures should be next to each other in y-direction
@@ -16,5 +16,6 @@ def formatLH(figsizex = 2, figsizey = 2):
     mpl.rcParams['patch.antialiased'] = True
     mpl.rcParams['axes.labelsize'] = 'large'
     mpl.rcParams['axes.titlesize'] = 'x-large'
-    mpl.rcParams['axes.spines.right'] = False
-    mpl.rcParams['axes.spines.top'] = False
+    mpl.rcParams['axes.spines.right'] = frame
+    mpl.rcParams['axes.spines.top'] = frame
+    mpl.rcParams["errorbar.capsize"] = 5
