@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
-def disp_zstack(image_stack: list, input_cmap: str):
+def plot_zstack(image_stack: list, input_cmap: str):
     for index, image in enumerate(image_stack):
         plt.figure(figsize = (5,5))
         plt.axis('off')

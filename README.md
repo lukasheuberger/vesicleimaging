@@ -30,7 +30,7 @@ It is currently under construction...
 - speed up image import, e.g. with AICSImageIO
 
 ### zstack analysis
-- choose which slices to actually analyze (a slide would be nice)
+- choose which slices to actually analyze (a slider would be nice)
 - 3d plot of fluo data, maybe normalize first
 - set all params first and analyze then later according to these params (dist from boarder, param1,2, etc.)
 

@@ -1,43 +1,83 @@
 """Plotting of czi images and image analysis."""
-
-from vesicle_imaging import format
+import format
 import matplotlib.pyplot as plt
 from matplotlib_scalebar.scalebar import ScaleBar
 import cv2
 import numpy as np
-from skimage import img_as_ubyte
-from vesicle_imaging import czi_image_handling as img_handler
+import czi_image_handling as handler
 import os
+from icecream import ic
 
-def plot_images(img_xy_data, img_add_metadata, img_metadata, saving_on, channels):
-    #scaling_x = img_handler.disp_scaling(img_add_metadata)
+def plot_images(img_xy_data, img_add_metadata, img_metadata, channels, saving_on=False, scalebar=True):
+
     format.formatLH()
-    for index, img in enumerate(img_xy_data):
+    for img_index, img in enumerate(img_xy_data):
+        ic(img_index)#, img)
         # print ('image:', img)
-        image = img[0]
-        print(img_metadata[index][0]['Filename'])
-        for channel in range(0, len(image)):
-            # print ('channel:',channel)
-            temp_filename = img_metadata[index][0]['Filename'].replace('.czi', '')
-            title_filename = ''.join([temp_filename, '_', channels[channel]])
-            output_filename = ''.join(['analysis/', title_filename, '.png'])
-            # print ('index + channel', index*3 + channel + 1)
-            fig = plt.figure(figsize=(5, 5), frameon=False)
-            fig.tight_layout(pad=0)
-            # subfig_counter = index*3 + channel
-            plt.imshow(image[channel], cmap='gray')
-            plt.axis('off')
-            plt.title(title_filename)
-            # print(filename_counter)
-            # if filename_counter < 1: #so only top two images have channel names
-            #    axs[subfig_counter].title.set_text(channel_names[channel])
-            #scalebar = ScaleBar(dx=scaling_x[index], location='lower right', fixed_value=30,
-            #                    fixed_units='µm', frameon = False, color = 'w')  # 1 pixel = scale [m]
-            #plt.gca().add_artist(scalebar)
+        # print ('index:', index)
+        # zstacks = (img_metadata[img_index][0]['Shape_czifile'][4])
 
-            if saving_on == True:
-                # print(output_filename)
-                plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
+        image = img[0]
+
+        scaling_x = handler.disp_scaling(img_add_metadata[img_index])
+        ic(scaling_x)
+
+        print(img_metadata[img_index][0]['Filename'])
+
+        for channel_index, channel_img in enumerate(image): #enumerates channels
+            ic(channel_index)
+            ic(channels[channel_index])
+
+            for z_index, z_img in enumerate(channel_img):
+                #ic(z_index) #plt.imshow(imx) #ic(inx, imx)
+
+                temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
+                title_filename = ''.join([temp_filename, '_', channels[channel_index], '_', str(z_index)])
+                output_filename = ''.join(['analysis/', title_filename, '.png'])
+
+                fig = plt.figure(figsize=(5, 5), frameon=False)
+                fig.tight_layout(pad=0)
+                plt.imshow(z_img, cmap='gray')
+
+                scalebar = ScaleBar(dx=scaling_x[0], location='lower right', fixed_value=30,
+                                    fixed_units='µm', frameon=False, color='w')  # 1 pixel = scale [m]
+                plt.gca().add_artist(scalebar)
+                plt.axis('off')
+                plt.title(title_filename)
+
+                if saving_on:
+                    plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
+
+        # for channel in range(0, len(image)):
+        #
+        #     for slice in range(0, zstacks):
+        #         #pass
+        #         ic(image[slice])
+        #
+        #     fig = plt.figure(figsize=(5, 5), frameon=False)
+        #     fig.tight_layout(pad=0)
+        #     # subfig_counter = index*3 + channel
+        #     plt.imshow(image[channel], cmap='gray')
+        #     plt.axis('off')
+        #     plt.title(title_filename)
+        #
+        #     # print ('channel:',channel)
+        #     temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
+        #     title_filename = ''.join([temp_filename, '_', channels[channel]])
+        #     output_filename = ''.join(['analysis/', title_filename, '.png'])
+        #     # print ('index + channel', index*3 + channel + 1)
+        #
+        #     # print(filename_counter)
+        #     # if filename_counter < 1: #so only top two images have channel names
+        #     #    axs[subfig_counter].title.set_text(channel_names[channel])
+        #     # scalebar = ScaleBar(dx=scaling_x[index], location='lower right', fixed_value=30,
+        #     #                    fixed_units='µm', frameon = False, color = 'w')  # 1 pixel = scale [m]
+        #     # plt.gca().add_artist(scalebar)
+        #
+        #     if saving_on:
+        #         # print(output_filename)
+        #         plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
+        #     # todo: add scalebar (always)
 
 def detect_circles(img_xy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel, detection_channel):
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
@@ -47,14 +87,12 @@ def detect_circles(img_xy_data, img_metadata, hough_saving, param1_array, param2
         image = img[0]
 
         if image.dtype == 'uint16':
-            print ('image is uint16, converting to uint8 ...')
-            image = img_as_ubyte(image)
-            print ('done converting to uint8')
+            image = handler.convert8bit(image)
 
         output = image[display_channel].copy()  # output on vis image
-        #output = [x + 30 for x in output]
-        #output = map(lambda x: x+30, output)
-        #output = list(np.asarray(output) + 30)
+        # output = [x + 30 for x in output]
+        # output = map(lambda x: x+30, output)
+        # output = list(np.asarray(output) + 30)
         # detect circles in the image
         circle = cv2.HoughCircles(image[detection_channel], cv2.HOUGH_GRADIENT,  # detection on vis image
                                   dp=2,
@@ -84,7 +122,7 @@ def detect_circles(img_xy_data, img_metadata, hough_saving, param1_array, param2
         plt.imshow(output, cmap='gray')#, vmin=0, vmax=20)
         plt.axis('off')
 
-        if hough_saving == True:
+        if hough_saving:
             try:
                 os.mkdir('analysis/HoughCircles')
             except FileExistsError:
