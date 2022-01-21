@@ -79,22 +79,27 @@ def plot_images(img_xy_data, img_add_metadata, img_metadata, channels, saving_on
         #         plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
         #     # todo: add scalebar (always)
 
-def detect_circles(img_xy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel, detection_channel):
+def detect_circles(img_xyz_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel, detection_channel):
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     circles = []
-    for index, img in enumerate(img_xy_data):
+
+    for index, img in enumerate(img_xyz_data):
         print ('image',  index + 1, 'is being processed...')
-        image = img[0]
+        img = img[0] # this is probably z level, but not entirely sure
+
+        image = img[detection_channel]
+        ic(image)
 
         if image.dtype == 'uint16':
             image = handler.convert8bit(image)
 
-        output = image[display_channel].copy()  # output on vis image
+        output = img[display_channel][0].copy()  # output on vis image
         # output = [x + 30 for x in output]
         # output = map(lambda x: x+30, output)
         # output = list(np.asarray(output) + 30)
         # detect circles in the image
-        circle = cv2.HoughCircles(image[detection_channel], cv2.HOUGH_GRADIENT,  # detection on vis image
+        image = image[0]
+        circle = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT,  # detection on vis image
                                   dp=2,
                                   minDist=minmax[1] + 10,
                                   minRadius=minmax[0],

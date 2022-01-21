@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 import imgfileutils as imf
 from icecream import ic
 import cv2
-
+from skimage import img_as_ubyte
 
 def get_files(path: str):
     files = []
@@ -135,7 +135,7 @@ def disp_scaling(img_add_metadata):
     scaling_x = []
     for index, image in enumerate(img_add_metadata):
         # scale = image[0]['Experiment']['ExperimentBlocks']['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
-        scale = image['Experiment']['ExperimentBlocks']['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
+        scale = image[0]['Experiment']['ExperimentBlocks']['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
         scaling_x.append(scale)
     # print('scale factor: ', scaling_x)
     return scaling_x
@@ -157,7 +157,7 @@ def increase_brightness(img, value=30):
 def convert8bit(img):
     print(img.dtype)
     print('image is uint16, converting to uint8 ...')
-    # image = cv2.convertScaleAbs(image, alpha=(255.0/65535.0))
+    #img8bit = cv2.convertScaleAbs(img, alpha=(255.0/65535.0))
     img8bit = img_as_ubyte(img)
     print('done converting to uint8')
     return img8bit
