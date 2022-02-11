@@ -12,26 +12,31 @@ def plot_images(img_xy_data, img_add_metadata, img_metadata, channels, saving_on
 
     format.formatLH()
     for img_index, img in enumerate(img_xy_data):
-        ic(img_index)#, img)
+        ic(img_index, img.shape)
+
         # print ('image:', img)
         # print ('index:', index)
         # zstacks = (img_metadata[img_index][0]['Shape_czifile'][4])
 
         image = img[0]
 
-        scaling_x = handler.disp_scaling(img_add_metadata[img_index])
+        scaling_x = handler.disp_scaling(img_add_metadata)#[img_index])
         ic(scaling_x)
 
-        print(img_metadata[img_index][0]['Filename'])
+        #print(img_metadata[img_index][0]['Filename'])
+        print(img_metadata[img_index]['Filename'])
 
-        for channel_index, channel_img in enumerate(image): #enumerates channels
+        for channel_index, channel_img in enumerate(img): #enumerates channels
             ic(channel_index)
             ic(channels[channel_index])
+            ic(channel_img.shape)
 
             for z_index, z_img in enumerate(channel_img):
-                #ic(z_index) #plt.imshow(imx) #ic(inx, imx)
+                ic(z_index) #plt.imshow(imx) #ic(inx, imx)
+                ic(z_img.shape)
 
-                temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
+                temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
+                #temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
                 title_filename = ''.join([temp_filename, '_', channels[channel_index], '_', str(z_index)])
                 output_filename = ''.join(['analysis/', title_filename, '.png'])
 
