@@ -23,8 +23,8 @@ def plot_images(img_xy_data, img_add_metadata, img_metadata, channels, saving_on
         scaling_x = handler.disp_scaling(img_add_metadata)#[img_index])
         ic(scaling_x)
 
-        #print(img_metadata[img_index][0]['Filename'])
-        print(img_metadata[img_index]['Filename'])
+        print(img_metadata[img_index][0]['Filename'])
+        #print(img_metadata[img_index]['Filename'])
 
         for channel_index, channel_img in enumerate(img): #enumerates channels
             ic(channel_index)
@@ -35,8 +35,8 @@ def plot_images(img_xy_data, img_add_metadata, img_metadata, channels, saving_on
                 ic(z_index) #plt.imshow(imx) #ic(inx, imx)
                 ic(z_img.shape)
 
-                temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
-                #temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
+                #temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
+                temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
                 title_filename = ''.join([temp_filename, '_', channels[channel_index], '_', str(z_index)])
                 output_filename = ''.join(['analysis/', title_filename, '.png'])
 
@@ -88,22 +88,32 @@ def detect_circles(img_xyz_data, img_metadata, hough_saving, param1_array, param
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     circles = []
 
+    # if circles.all() == [None]:
+    print('the bigger param1, the fewer circles may be detected')
+    print('the smaller param2 is, the more false circles may be detected')
+    print('circles, corresponding to the larger accumulator values, will be returned first')
+    print('-------------------------')
+    print(' ')
     for index, img in enumerate(img_xyz_data):
         print ('image',  index + 1, 'is being processed...')
-        img = img[0] # this is probably z level, but not entirely sure
+        ic(img.shape)
+        #img = img[0] # this is probably z level, but not entirely sure
 
-        image = img[detection_channel]
-        ic(image)
+        image = img[detection_channel][0]
+        #image = img
+        ic(image.shape)
 
         if image.dtype == 'uint16':
             image = handler.convert8bit(image)
 
         output = img[display_channel][0].copy()  # output on vis image
+        #output = img[0].copy()  # output on vis image
         # output = [x + 30 for x in output]
         # output = map(lambda x: x+30, output)
         # output = list(np.asarray(output) + 30)
         # detect circles in the image
-        image = image[0]
+        #image = image[0]
+        ic(image.shape)
         circle = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT,  # detection on vis image
                                   dp=2,
                                   minDist=minmax[1] + 10,
@@ -143,6 +153,9 @@ def detect_circles(img_xyz_data, img_metadata, hough_saving, param1_array, param
             plt.imsave(output_filename, output, cmap='gray')#, vmin=0, vmax=20)
 
         print ('______________________')
+    print(circles,' circles found')
+
+
 
     return circles
 
@@ -170,6 +183,7 @@ def measure_circles(image_xy_data, distance_from_border=20, excel_saving = True)
 
                 for x in range(x_0 - measurement_radius, x_0 + measurement_radius):
                     for y in range(y_0 - measurement_radius, y_0 + measurement_radius):
+                        #todo this might be wrong, see czi_frap
                         dx = x - circle[0]
                         dy = y - circle[1]
                         distanceSquared = dx ** 2 + dy ** 2
@@ -177,6 +191,7 @@ def measure_circles(image_xy_data, distance_from_border=20, excel_saving = True)
                         if distanceSquared <= (measurement_radius ** 2):
                             # img_five[0][0] = first image, fluorescein channel
                             pixel_val = image[0][dy][dx]  # measurement on GFP image (= 0)
+                            #todo this should probably be y, x instead of dy, dx
                             pixels_in_circle.append(pixel_val)
                 cv2.circle(output, (x_0, y_0), (measurement_radius), (255, 255, 255), 2)  # x,y,radius
             print('filename: ', filenames[index])

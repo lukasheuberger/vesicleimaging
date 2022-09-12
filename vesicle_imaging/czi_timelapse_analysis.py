@@ -154,3 +154,6 @@ def detect_timelapse_circles(detect_img, measure_img, dp, minDist, minRadius, ma
         plt.imshow(output, cmap='hot')
 
     return circle_frame_average, circle_frame_stdev, circle_frame_median, circle_frame_lower, circle_frame_upper
+
+if __name__ == '__main__':
+    print('yay')

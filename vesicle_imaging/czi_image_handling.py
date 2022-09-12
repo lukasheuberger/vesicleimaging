@@ -1,6 +1,5 @@
 """Basic czi image handling and information extraction."""
 
-
 import czifile
 import os
 import xml.etree.ElementTree as ET
@@ -26,7 +25,7 @@ def get_files(path: str):
 
 def write_metadata_xml(path: str, files: list):
     try:
-        metadata_path = ''.join([path, 'metadata'])
+        metadata_path = ''.join([path, '/metadata'])
         ic(metadata_path)
         os.mkdir(metadata_path)
     except FileExistsError:
@@ -72,6 +71,7 @@ def extract_channels_czxy(img_data: list):
     img_czxy_data = []
     for index, img in enumerate(img_data):
         ic(index)
+        #ic(img)
         ic(img.shape)
         channels_cxyz = []
         # for image in img:
@@ -90,7 +90,7 @@ def extract_channels_timelapse(img_data):
     return channels_timelapse
 
 
-def disp_channels(add_metadata):
+def disp_channels(add_metadata):#### fix this and combine with bottom one!
     # channels are the same for both conditions
     channel_names = []
     dyes = []
@@ -128,9 +128,11 @@ def disp_basic_img_info(img_data, img_metadata):
         print('-----------------------------')
 
 
-def disp_channels(img_metadata):
+def xxxdisp_channels(img_metadata):
     #channels = img_metadata[0][0]['ChannelNames']
-    channels = img_metadata[0]['ChannelNames']
+    #channels = img_metadata[0]['ChannelNames']
+    ic(img_metadata[0][0]['ChannelNames'])
+    channels = img_metadata[0][0][0]['ChannelNames']
     #dyes = img_metadata[0][0]['Channels']
     dyes = img_metadata[0]['Channels']
     return channels, dyes
@@ -139,8 +141,9 @@ def disp_channels(img_metadata):
 def disp_scaling(img_add_metadata):
     scaling_x = []
     for index, image in enumerate(img_add_metadata):
-        # scale = image[0]['Experiment']['ExperimentBlocks']['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
-        scale = image['Experiment']['ExperimentBlocks']['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
+        scale = image[0]['Experiment']['ExperimentBlocks']['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
+        #scale = image['Experiment']['ExperimentBlocks']['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
+        #todo fix somehow that this doesn't have to be changed all the time
         scaling_x.append(scale)
     # print('scale factor: ', scaling_x)
     return scaling_x
@@ -166,3 +169,6 @@ def convert8bit(img):
     img8bit = img_as_ubyte(img)
     print('done converting to uint8')
     return img8bit
+
+if __name__ == '__main__':
+    print('yay')
