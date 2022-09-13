@@ -45,11 +45,11 @@ try:
 except ModuleNotFoundError as error:
     print(error.__class__.__name__ + ": " + error.msg)
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
 
     QHBoxLayout,
     QVBoxLayout,
-    QFileSystemModel,
+    # QFileSystemModel,
     QFileDialog,
     QTreeView,
     QDialogButtonBox,
@@ -59,9 +59,9 @@ from PyQt5.QtWidgets import (
     QAbstractItemView
 
 )
-from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QFont
+from PyQt6.QtCore import Qt, QDir, QSortFilterProxyModel
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtGui import QFont
 
 
 def get_imgtype(imagefile):

@@ -1,39 +1,39 @@
 """Plotting of czi images and image analysis."""
 import format
 import matplotlib.pyplot as plt
-from matplotlib_scalebar.scalebar import ScaleBar
+# from matplotlib_scalebar.scalebar import ScaleBar
 import cv2
 import numpy as np
-import czi_image_handling as handler
+# import czi_image_handling as handler
 import os
 from icecream import ic
 
-def plot_images(img_xy_data, img_add_metadata, img_metadata, channels, saving_on=False, scalebar=True):
+def plot_images(image_czxy_data, img_add_metadata, img_metadata, channels, saving_on=True, scalebar=True):
 
     format.formatLH()
-    for img_index, img in enumerate(img_xy_data):
-        ic(img_index, img.shape)
+    for img_index, img in enumerate(image_czxy_data):
+        #ic(img_index, img.shape)
 
         # print ('image:', img)
         # print ('index:', index)
         # zstacks = (img_metadata[img_index][0]['Shape_czifile'][4])
 
-        image = img[0]
+        # image = img[0]
 
-        scaling_x = handler.disp_scaling(img_add_metadata)#[img_index])
-        ic(scaling_x)
+        scaling_x = handler.disp_scaling(img_add_metadata[img_index])
+        #ic(scaling_x)
 
         print(img_metadata[img_index][0]['Filename'])
         #print(img_metadata[img_index]['Filename'])
 
         for channel_index, channel_img in enumerate(img): #enumerates channels
-            ic(channel_index)
-            ic(channels[channel_index])
-            ic(channel_img.shape)
+            # ic(channel_index)
+            # ic(channels[channel_index])
+            # ic(channel_img.shape)
 
             for z_index, z_img in enumerate(channel_img):
-                ic(z_index) #plt.imshow(imx) #ic(inx, imx)
-                ic(z_img.shape)
+                # ic(z_index) #plt.imshow(imx) #ic(inx, imx)
+                # ic(z_img.shape)
 
                 #temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
                 temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
@@ -51,7 +51,14 @@ def plot_images(img_xy_data, img_add_metadata, img_metadata, channels, saving_on
                 plt.title(title_filename)
 
                 if saving_on:
+                    try:
+                        new_folder_path = os.path.join(os.getcwd(), 'analysis')
+                        os.mkdir(new_folder_path)
+                        print('created new analysis folder: ', new_folder_path)
+                    except FileExistsError:
+                        pass
                     plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
+                    print('image saved: ', output_filename)
 
         # for channel in range(0, len(image)):
         #
@@ -84,10 +91,11 @@ def plot_images(img_xy_data, img_add_metadata, img_metadata, channels, saving_on
         #         plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
         #     # todo: add scalebar (always)
 
-def detect_circles(img_xyz_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel, detection_channel):
+def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel, detection_channel):
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     circles = []
 
+<<<<<<< Updated upstream
     # if circles.all() == [None]:
     print('the bigger param1, the fewer circles may be detected')
     print('the smaller param2 is, the more false circles may be detected')
@@ -102,6 +110,13 @@ def detect_circles(img_xyz_data, img_metadata, hough_saving, param1_array, param
         image = img[detection_channel][0]
         #image = img
         ic(image.shape)
+=======
+    for index, img in enumerate(image_czxy_data):
+        print ('image',  index + 1, 'is being processed...')
+        # img = img[0] # this is probably z level, but not entirely sure
+
+        image = img[detection_channel]
+>>>>>>> Stashed changes
 
         if image.dtype == 'uint16':
             image = handler.convert8bit(image)
@@ -116,7 +131,7 @@ def detect_circles(img_xyz_data, img_metadata, hough_saving, param1_array, param
         ic(image.shape)
         circle = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT,  # detection on vis image
                                   dp=2,
-                                  minDist=minmax[1] + 10,
+                                  minDist=minmax[1] + 110,
                                   minRadius=minmax[0],
                                   maxRadius=minmax[1],
                                   param1=param1_array[index],
