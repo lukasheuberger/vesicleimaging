@@ -1063,7 +1063,8 @@ def get_additional_metadata_czi(filename):
         additional_czimd['CustomAttributes'] = None
 
     try:
-        additional_czimd['DisplaySetting'] = metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
+        #additional_czimd['DisplaySetting'] = metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
+        additional_czimd['DisplaySetting'] = metadatadict_czi['ImageDocument']['Metadata']
     except KeyError as e:
         print('Key not found:', e)
         additional_czimd['DisplaySetting'] = None

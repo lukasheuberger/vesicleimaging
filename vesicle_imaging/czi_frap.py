@@ -1,3 +1,5 @@
+import sys
+
 import matplotlib.pyplot as plt
 from matplotlib import pylab as pl
 import matplotlib as mpl
@@ -92,7 +94,10 @@ plt.show()
 #     plt.show()
 
 ic(image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle']['Geometry'])
-frap_position=image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle']['Geometry'] #centerx, centery, radius
+frap_position = image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle']['Geometry'] #centerx, centery, radius
+deltaT = image_add_metadata[0][0]['DisplaySetting']['Information']['Image']['Dimensions']['Channels']['Channel'][0]['LaserScanInfo']['FrameTime']
+ic(deltaT)
+
 ic(frap_position)
 #ic(frap_position['CenterX'])
 
@@ -116,7 +121,7 @@ stats = []
 
 x_0 = int(float(frap_position['CenterX']))
 y_0 = int(float(frap_position['CenterY']))
-radius = int(float(frap_position['Radius']))
+radius = int(float(frap_position['Radius'])) #todo correct rounding
 ic(x_0, y_0, radius)
 
 for frame in range(0, num_frames):
@@ -126,7 +131,7 @@ for frame in range(0, num_frames):
     #blank_image = np.zeros((256,256,3), np.uint8)
 
     # make radius slighly smaller so border is not in range
-    distance_from_border = 1
+    distance_from_border = 0
     measurement_radius = radius - distance_from_border  # [index]
     #ic(measurement_radius)
 
@@ -150,94 +155,51 @@ for frame in range(0, num_frames):
     #print('filename: ', filenames[index])
     #print('no. of GUVs counted: ', len(detected_circles[index]))
     #print('number of pixels: ', len(pixels_in_circle))
-    print('min: ', np.min(pixels_in_circle))
-    print('max: ', np.max(pixels_in_circle))
-    print('average: ', np.mean(pixels_in_circle))
-    print('stdev: ', np.std(pixels_in_circle))
+    # print('min: ', np.min(pixels_in_circle))
+    # print('max: ', np.max(pixels_in_circle))
+    # print('average: ', np.mean(pixels_in_circle))
+    # print('stdev: ', np.std(pixels_in_circle))
     stats.append(np.mean(pixels_in_circle))
 
 #ic(stats)
 plt.figure()
 plt.plot(stats)
-plt.show()
-
-# Compute I_0
-I_0 = 0.0
-I_pre = np.empty(bleach_frame)
-ic(I_pre)
-for i in range(bleach_frame):
-    measurement_image = image_cxyz_data[0][:, i, :, :][0]
-
-    x_0 = int(float(frap_position['CenterX']))
-    y_0 = int(float(frap_position['CenterY']))
-    radius = int(float(frap_position['Radius']))
-    distance_from_border = 1
-    # make radius slighly smaller so border is not in range
-    measurement_radius = radius - distance_from_border  # [index]
-    #ic(measurement_radius)
-
-    pixels_in_circle = []
-
-    for x in range(x_0 - measurement_radius, x_0 + measurement_radius):
-        for y in range(y_0 - measurement_radius, y_0 + measurement_radius):
-            dx = x - int(float(frap_position['CenterX']))
-            dy = y - int(float(frap_position['CenterY']))
-            distanceSquared = dx ** 2 + dy ** 2
-            # print (distanceSquared)
-            if distanceSquared <= (measurement_radius ** 2):
-                pixel_val = measurement_image[y][x]
-                pixels_in_circle.append(pixel_val)
-    I_pre[i] = np.mean(pixels_in_circle)
-
-I_0 = I_pre.sum() / bleach_frame
-ic(I_0)
-
-# Reset time to that time = 0 is on bleach frame
-t_pre = range(0,5)#frap_xyt.t[:bleach_frame] - frap_xyt.t[bleach_frame]
-t = range(5,num_frames)#rap_xyt.t[bleach_frame:] - frap_xyt.t[bleach_frame]
-
-# Compute average I over time
-I_mean = np.empty(num_frames - bleach_frame)
-for i in range(bleach_frame, num_frames):
-    measurement_image = image_cxyz_data[0][:, i, :, :][0]
-
-    x_0 = int(float(frap_position['CenterX']))
-    y_0 = int(float(frap_position['CenterY']))
-    radius = int(float(frap_position['Radius']))
-    distance_from_border = 1
-    # make radius slighly smaller so border is not in range
-    measurement_radius = radius - distance_from_border  # [index]
-    pixels_in_circle = []
-
-    for x in range(x_0 - measurement_radius, x_0 + measurement_radius):
-        for y in range(y_0 - measurement_radius, y_0 + measurement_radius):
-            dx = x - int(float(frap_position['CenterX']))
-            dy = y - int(float(frap_position['CenterY']))
-            distanceSquared = dx ** 2 + dy ** 2
-            # print (distanceSquared)
-            if distanceSquared <= (measurement_radius ** 2):
-                pixel_val = measurement_image[y][x]
-                pixels_in_circle.append(pixel_val)
-    I_mean[i - bleach_frame] = np.mean(pixels_in_circle)
-
-#ic(I_mean)
-
-# Compute normalized intensity
-I_norm = I_mean / I_0
-I_pre_norm = I_pre / I_0
-#ic(I_norm)
-#ic(I_pre_norm)
-
-# Plot normalized intensity
-plt.plot(t_pre, I_pre_norm, 'k-')
-plt.plot(t, I_norm, 'k-')
-plt.xlabel('time (s)')
-plt.ylabel(r'$I_\mathrm{norm}$')
+plt.title('stats')
 plt.show()
 
 
+bleach1 = stats[0:5]
+recovery1 = stats[5:100]
+t1=range(5,100)
+#t1=list(range(5,100))
+t1 = [timestep * float(deltaT) for timestep in t1] # convert to actual seconds
+bleach2 = stats[100:105]
+recovery2 = stats[105:200]
+recovery1_norm = recovery1/np.mean(bleach1)
+recovery2_norm = recovery2/np.mean(bleach2)
 
+plt.figure()
+plt.title('stats not normalized')
+plt.plot(bleach1, label = 'run 1')
+plt.plot(recovery1, label = 'run 1')
+plt.plot(bleach2, label = 'run 2')
+plt.plot(recovery2, label = 'run 2')
+plt.legend()
+plt.show()
 
+plt.figure()
+plt.title('stats normalized')
+plt.plot(recovery1_norm, label = 'run 1')
+plt.plot(recovery2_norm, label = 'run 2')
+plt.legend()
+plt.show()
+
+#calculate area of circle
+ic(float(frap_position['Radius']))
+area = float(frap_position['Radius'])**2*np.pi
+ic(area)
+d_x = np.sqrt(area)
+d_y =  np.sqrt(area)
 
 
 # Define log posterior
@@ -249,7 +211,7 @@ def log_posterior(p, I_norm, t, d_x, d_y):
             ((I_norm - norm_fluor_recov(p, t, d_x, d_y))**2).sum())
 
 # Define fit function
-def norm_fluor_recov(p, t, d_x, d_y):
+def norm_fluor_recov(p, time, d_x, d_y):
     """
     Return normalized fluorescence as function of time.
     """
@@ -257,44 +219,59 @@ def norm_fluor_recov(p, t, d_x, d_y):
     f_b, f_f, D, k_off = p
 
     # Function to compute psi
-    def psi(t, D, d_i):
-        return d_i / 2.0 * scipy.special.erf(d_i / np.sqrt(4.0 * D * t)) \
+    def psi(time_array, D, d_i):
+        return [d_i / 2.0 * scipy.special.erf(d_i / np.sqrt(4.0 * D * t)) \
                      - np.sqrt(D * t / np.pi) \
-                                * (1.0- np.exp(-d_i**2 / (4.0 * D * t)))
-    psi_x = psi(t, D, d_x)
-    psi_y = psi(t, D, d_y)
-    return f_f * (1.0 - f_b * 4.0 * np.exp(-k_off * t) / d_x / d_y
-                            * psi_x * psi_y)
+                                * (1.0- np.exp(-d_i**2 / (4.0 * D * t))) for t in time_array]
+    psi_x = psi(time, D, d_x)
+    psi_y = psi(time, D, d_y)
+    return f_f * (1.0 - f_b * 4.0 * np.exp([-k_off * t for t in time]) / d_x / d_y * psi_x * psi_y)
+    #todo: make consistent with naming t vs t_array
 
 # Define residual
-def resid(p, I_norm, t, d_x, dy):
+def resid(p, I_norm, t, d_x, d_y):
     return I_norm - norm_fluor_recov(p,t, d_x, d_y)
-
-
-d_x=160
-d_y=180
 
 # Perform the curve fit
 p0 = np.array([0.9, 0.9, 10.0, 0.1])
-popt, junk_output = scipy.optimize.leastsq(resid, p0,
-                                           args=(I_norm, t, d_x, d_y))
+popt, pcov = scipy.optimize.leastsq(resid, p0, args=(recovery1_norm, t1, d_x, d_y))
+#popt, junk_output = scipy.optimize.leastsq(resid, p0, args=(I_norm, t, d_x, d_y))
+ic(popt)
+s_sq = (resid(popt, recovery1_norm, t1, d_x, d_y)**2).sum()/(len(recovery1_norm)-len(p0))
+pcov = pcov * s_sq
+ic(s_sq, pcov)
 
-# # Compute the covariance
-# cov = np.cov()
-# hes = jb.hess_nd(log_posterior, popt, args=(I_norm, t, d_x, d_y))
-# cov = -np.linalg.inv(hes)
+
+# errfunc = lambda p, x, y: norm_fluor_recov(x,p) - y
+# s_sq = (errfunc(popt, t1, recovery1_norm)**2).sum()/(len(recovery1_norm)-len(p0))
+# pcov = pcov * s_sq
+# perr = np.sqrt(np.diag(pcov))
+# ic(pcov, perr)
+
+# Compute the covariance
+#hes = jb.hess_nd(log_posterior, popt, args=(I_norm, t, d_x, d_y))
+#cov = -np.linalg.inv(hes)
 
 # Report results
-formats = tuple(popt)# + tuple(np.sqrt(np.diag(cov)))
+formats = tuple(popt) #+ tuple(np.sqrt(np.diag(pcov)))
+# print("""
+# f_f = {0:.3f} +- {4:.3f}
+# f_b = {1:.3f} +- {5:.3f}
+# D = {2:.3f} +- {6:.3f} µm^2/s
+# k_off = {3:.3f} +- {7:.3f} (1/s)
+# """.format(*formats))
 print("""
-f_f = {0:.3f} +- {4:.3f}
-f_b = {1:.3f} +- {5:.3f}
-D = {2:.3f} +- {6:.3f} µm^2/s
-k_off = {3:.3f} +- {7:.3f} (1/s)
+f_f = {0:.3f}
+f_b = {1:.3f}
+D = {2:.3f} µm^2/s
+k_off = {3:.3f} (1/s)
 """.format(*formats))
+#todo: make that this works for covariance
+#todo: also, D might be wrong
 
 # Plot recovery trace
-plt.plot(t, I_norm, 'k-')
-plt.plot(t, norm_fluor_recov(popt, t, d_x, d_y), 'r-')
+plt.plot(t1, recovery1_norm, 'k-')
+plt.plot(t1, norm_fluor_recov(popt, t1, d_x, d_y), 'r-')
 plt.xlabel('time (s)')
 plt.ylabel('norm. fluor. (a.u.)')
+plt.show()

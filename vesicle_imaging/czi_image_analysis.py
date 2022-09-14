@@ -95,7 +95,7 @@ def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, pa
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     circles = []
 
-<<<<<<< Updated upstream
+#<<<<<<< Updated upstream
     # if circles.all() == [None]:
     print('the bigger param1, the fewer circles may be detected')
     print('the smaller param2 is, the more false circles may be detected')
@@ -110,13 +110,13 @@ def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, pa
         image = img[detection_channel][0]
         #image = img
         ic(image.shape)
-=======
+#=======
     for index, img in enumerate(image_czxy_data):
         print ('image',  index + 1, 'is being processed...')
         # img = img[0] # this is probably z level, but not entirely sure
 
         image = img[detection_channel]
->>>>>>> Stashed changes
+#>>>>>>> Stashed changes
 
         if image.dtype == 'uint16':
             image = handler.convert8bit(image)
