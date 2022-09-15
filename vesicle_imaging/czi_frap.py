@@ -97,6 +97,8 @@ ic(image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle']['Geometr
 frap_position = image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle']['Geometry'] #centerx, centery, radius
 deltaT = image_add_metadata[0][0]['DisplaySetting']['Information']['Image']['Dimensions']['Channels']['Channel'][0]['LaserScanInfo']['FrameTime']
 ic(deltaT)
+scaling = float(handler.disp_scaling(image_add_metadata)[0])
+ic(scaling)
 
 ic(frap_position)
 #ic(frap_position['CenterX'])
@@ -121,8 +123,11 @@ stats = []
 
 x_0 = int(float(frap_position['CenterX']))
 y_0 = int(float(frap_position['CenterY']))
-radius = int(float(frap_position['Radius'])) #todo correct rounding
-ic(x_0, y_0, radius)
+radius_px = int(float(frap_position['Radius'])) #todo correct rounding
+ic(x_0, y_0, radius_px)
+radius_m = float(frap_position['Radius'])*scaling # in m
+radius_um = radius_m * 10**6 # convert to um
+ic(radius_px, radius_m, radius_um)
 
 for frame in range(0, num_frames):
     #ic(frame)
@@ -132,7 +137,7 @@ for frame in range(0, num_frames):
 
     # make radius slighly smaller so border is not in range
     distance_from_border = 0
-    measurement_radius = radius - distance_from_border  # [index]
+    measurement_radius = radius_px - distance_from_border  # [index]
     #ic(measurement_radius)
 
     pixels_in_circle = []
@@ -196,11 +201,10 @@ plt.show()
 
 #calculate area of circle
 ic(float(frap_position['Radius']))
-area = float(frap_position['Radius'])**2*np.pi
-ic(area)
+area = radius_um**2*np.pi #in um^2
 d_x = np.sqrt(area)
-d_y =  np.sqrt(area)
-
+d_y = np.sqrt(area)
+ic(area, d_x, d_y)
 
 # Define log posterior
 def log_posterior(p, I_norm, t, d_x, d_y):
@@ -216,7 +220,8 @@ def norm_fluor_recov(p, time, d_x, d_y):
     Return normalized fluorescence as function of time.
     """
     # Unpack parameters
-    f_b, f_f, D, k_off = p
+    #f_b, f_f, D, k_off = p
+    f_f, f_b, D, k_off = p
 
     # Function to compute psi
     def psi(time_array, D, d_i):
@@ -233,7 +238,8 @@ def resid(p, I_norm, t, d_x, d_y):
     return I_norm - norm_fluor_recov(p,t, d_x, d_y)
 
 # Perform the curve fit
-p0 = np.array([0.9, 0.9, 10.0, 0.1])
+p0 = np.array([0.9, 0.9, 1.0, 0.1])
+#p0 = np.array([0.9, 0.9, 10.0, 0.1])
 popt, pcov = scipy.optimize.leastsq(resid, p0, args=(recovery1_norm, t1, d_x, d_y))
 #popt, junk_output = scipy.optimize.leastsq(resid, p0, args=(I_norm, t, d_x, d_y))
 ic(popt)
@@ -272,6 +278,32 @@ k_off = {3:.3f} (1/s)
 # Plot recovery trace
 plt.plot(t1, recovery1_norm, 'k-')
 plt.plot(t1, norm_fluor_recov(popt, t1, d_x, d_y), 'r-')
+plt.xlabel('time (s)')
+plt.ylabel('norm. fluor. (a.u.)')
+plt.show()
+
+
+def fit(d0, t):#, radius):
+    tau = d0
+    #ic(D)
+    #ic(tau)
+    #F(t) = np.exp(-2*tau/t) * (scipy.special.i0(2*tau/t) + scipy.special.i1(2*tau/t))
+    #return np.exp(-2*tau/t) * (scipy.special.i0(2*tau/t) + scipy.special.i1(2*tau/t))
+    #return np.exp(-2*((radius ** 2) / (4 * D))/t) * (scipy.special.i0(2*(radius ** 2 / (4 * D))/t) + scipy.special.i1(2*(radius ** 2 / (4 * D))/t))
+    return np.exp(-2*tau/t) * (scipy.special.i0(2*tau/t) + scipy.special.i1(2*tau/t)) #fast bessel
+    #return np.exp(-2*tau/t) * (scipy.special.iv(0, 2*tau/t) + scipy.special.iv(1, 2*tau/t)) #traditional bessel
+
+def newresid(d0, I_norm, t):
+    return I_norm - fit(d0, t)
+
+d0 = [10]#[0.9, 0.9, 10.0, 0.1])
+coeffs, _ = scipy.optimize.leastsq(newresid, d0, args=(recovery1_norm, t1))
+ic(coeffs)
+diffusion_const = radius_um ** 2 / (4 * coeffs)
+ic(diffusion_const)
+
+plt.plot(t1, recovery1_norm, 'k-')
+plt.plot(t1, fit(coeffs, t1), 'r-')
 plt.xlabel('time (s)')
 plt.ylabel('norm. fluor. (a.u.)')
 plt.show()
