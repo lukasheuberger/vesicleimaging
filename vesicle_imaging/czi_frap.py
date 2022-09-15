@@ -230,7 +230,7 @@ def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, ima
     return time, bleach, recovery, radii
 
 
-def fit_data(time, recovery, radii):
+def fit_data(time, recovery, radii, filenames):
     """
 
     Args:
@@ -271,7 +271,7 @@ def fit_data(time, recovery, radii):
     d0 = np.ndarray([10])  # initial guess
 
     for index, experiment in enumerate(recovery):
-        print('fitting: ', image_metadata[index][0]['Filename'])
+        print('fitting: ', filenames[index])
         # area = radii[index]**2*np.pi #in um^2
         coeffs = scipy.optimize.leastsq(residuals, d0, args=(experiment, time))
 
@@ -301,7 +301,7 @@ if __name__ == '__main__':
                                                                                         bleach_channel)
     time, bleach, recovery, radii = measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, metadata,
                                                          bleach_frame, recovery_end_frame)
-    diffusion_constants = fit_data(time, recovery, radii)
+    diffusion_constants = fit_data(time, recovery, radii, filenames)
     ic(diffusion_constants)
 
     df = pd.DataFrame({'filename' : filenames, 'diffusion constants' : diffusion_constants})
