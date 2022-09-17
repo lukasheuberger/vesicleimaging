@@ -83,12 +83,18 @@ def extract_channels_czxy(img_data: list):
     return img_czxy_data
 
 
-def extract_channels_timelapse(img_data):
+def extract_channels_timelapse_cxyz(img_data):
     channels_timelapse = []
     for image in img_data:
         channels_timelapse.append(image[0, 0, :, :, 0, :, :])
     return channels_timelapse
 
+def extract_channels_timelapse_xyt(img_data, channel_no):
+    xyt_timelapse = []
+    for image in img_data:
+        xyt_timelapse.append(image[0, 0, channel_no, :, 0, :, :])
+    #ic(xyt_timelapse[0].shape)
+    return xyt_timelapse
 
 def disp_channels(add_metadata):#### fix this and combine with bottom one!
     # channels are the same for both conditions

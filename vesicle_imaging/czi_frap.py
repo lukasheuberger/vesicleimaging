@@ -7,17 +7,20 @@ import scipy.optimize
 import scipy.special
 from icecream import ic
 import pandas as pd
+import h5py
+import pickle
 
 from vesicle_imaging import czi_image_handling as handler
 
 
-def init_data(path, bleach_frame, bleach_channel):
+def init_data(path, bleach_frame, bleach_channel, recovery_end_frame):
     """
 
     Args:
         path:
         bleach_frame:
         bleach_channel:
+        recovery_end_frame:
 
     Returns:
         object:
@@ -27,92 +30,143 @@ def init_data(path, bleach_frame, bleach_channel):
     # ic(os.listdir(path))
     ic(os.getcwd())
 
-    files, filenames = handler.get_files(path)
-    filenames.sort(reverse=True)
-    files.sort(reverse=True)
-    ic(files)
+    # check if hdf5 file exists and load that instead of all data
+    if os.path.exists('data.h5'):
+        print('data file already exists, loading data ...')
+        hf = h5py.File('data.h5', 'r')
+        ic(hf.keys())
+        image_cxyz_data = np.array(hf.get('image_cxyz_data'))
+        deltaTs = np.array(hf.get('deltaTs'))
+        scalings = np.array(hf.get('scalings'))
+        filenames = np.array(hf.get('filenames'))
+        hf.close()
+        filenames = [filename.decode() for filename in filenames]
 
-    print('number of images: ', len(files))
+        frap_pickle = open("frap.pkl", "rb")
+        frap_positions = pickle.load(frap_pickle)
+        # ic(frap_positions)
+        frap_pickle.close()
 
-    # filenames = files
-    # filenames.sort()
-    # for i in range(0,len(files)):
-    #     filenames[i] = files[i].replace('.czi','')
-    # ic(filenames)
+        metadata_pickle = open("metadata.pkl", "rb")
+        image_metadata = pickle.load(metadata_pickle)
+        metadata_pickle.close()
 
-    image_data = []
-    image_metadata = []
-    image_add_metadata = []
-    image_cxyz_data = []
-    for image in files:
-        ic(image)
-        data, metadata, add_metadata = handler.load_image_data([image])
-        image_data.append(data)
-        image_metadata.append(metadata)
-        image_add_metadata.append(add_metadata)
+    else:
+        files, filenames = handler.get_files(path)
+        filenames.sort(reverse=True)
+        files.sort(reverse=True)
+        ic(files)
 
-        img_data = handler.extract_channels_timelapse(data)
-        image_cxyz_data.append(img_data)
-    print('IMAGE IMPORT DONE!')
+        print('number of images: ', len(files))
 
-    ic(image_data[0][0].shape)  # exemplary image shape
-    ic(image_cxyz_data[0][0].shape)
+        # filenames = files
+        # filenames.sort()
+        # for i in range(0,len(files)):
+        #     filenames[i] = files[i].replace('.czi','')
+        # ic(filenames)
 
-    handler.disp_basic_img_info(image_cxyz_data[0], image_metadata)  # exemplary basic metadata
+        image_data = []
+        image_metadata = []
+        image_add_metadata = []
+        image_cxyz_data = []
+        for file in files:
+            ic(file)
+            data, metadata, add_metadata = handler.load_image_data([file])
+            image_data.append(data)
+            image_metadata.append(metadata)
+            image_add_metadata.append(add_metadata)
+            img_data = handler.extract_channels_timelapse_xyt(data, bleach_channel)
+            ic(img_data[0][bleach_frame:recovery_end_frame].shape) # make all same length so the can be exported to hdf5
+            image_cxyz_data.append(img_data[0][0:recovery_end_frame])
+        print('IMAGE IMPORT DONE!')
 
-    # to save images as pngs
-    saving_on = True # todo: make that this actually does something
-    if saving_on:
-        try:
-            os.mkdir('FRAP_analysis')  # todo make that this goes to the location of the input file
-        except FileExistsError:
-            pass
+        # ic(image_data[0][0].shape)  # exemplary image shape
+        # ic(len(image_cxyz_data))
+        # #ic(image_cxyz_data.dtype)
+        #
+        # ic(image_cxyz_data[0][bleach_frame, recovery_end_frame])
+        # ic(image_cxyz_data[0].shape)
+        # ic(image_cxyz_data[0][0].shape)
 
-    frap_positions = []
-    deltaTs = []
-    scalings = []
-    filenames = []
+        # handler.disp_basic_img_info(image_cxyz_data, image_metadata)  # exemplary basic metadata
 
-    # ic(image_cxyz_data)
-    for index, img in enumerate(image_cxyz_data):
-        # # save frame after bleaching
-        # plt.figure()
-        # plt.imshow(img[0][:,bleach_frame,:,:][bleach_channel])
-        # savename = image_metadata[index][0]['Filename'].replace('.czi','_bleachframe.png')
-        # savename = ''.join(['FRAP_analysis/', savename])
-        # plt.savefig(savename, dpi=300)
-        # plt.show()
+        # to save images as pngs
+        saving_on = True # todo: make that this actually does something
+        if saving_on:
+            try:
+                os.mkdir('FRAP_analysis')  # todo make that this goes to the location of the input file
+            except FileExistsError:
+                pass
 
-        # read ROI info from metadata
-        # ic(image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle']['Geometry'])
-        frap_position = dict(image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle'][
-                                 'Geometry'])  # centerx, centery, radius
-        delta_time = \
-            image_add_metadata[0][0]['DisplaySetting']['Information']['Image']['Dimensions']['Channels']['Channel'][0][
-                'LaserScanInfo']['FrameTime']
+        frap_positions = []
+        deltaTs = []
+        scalings = []
+        filenames = []
 
-        scaling = float(handler.disp_scaling(image_add_metadata)[0])
-        # ic(frap_position, delta_time, scaling)
+        # ic(image_cxyz_data)
+        for index, img in enumerate(image_cxyz_data):
+            # # save frame after bleaching
+            # plt.figure()
+            # plt.imshow(img[0][:,bleach_frame,:,:][bleach_channel])
+            # savename = image_metadata[index][0]['Filename'].replace('.czi','_bleachframe.png')
+            # savename = ''.join(['FRAP_analysis/', savename])
+            # plt.savefig(savename, dpi=300)
+            # plt.show()
 
-        frap_positions.append(frap_position)
-        deltaTs.append(delta_time)
-        scalings.append(scaling)
+            # read ROI info from metadata
+            # ic(image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle']['Geometry'])
+            frap_position = dict(image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle'][
+                                     'Geometry'])  # centerx, centery, radius
+            delta_time = \
+                image_add_metadata[0][0]['DisplaySetting']['Information']['Image']['Dimensions']['Channels']['Channel'][0][
+                    'LaserScanInfo']['FrameTime']
 
-        # save frame after bleaching with ROI
-        plt.figure()
-        ic(image_metadata[index][0]['Filename'])
-        ic(img[0].shape)
-        output = img[0][:, bleach_frame, :, :][bleach_channel].copy()
-        cv2.circle(output, (int(float(frap_position['CenterX'])), int(float(frap_position['CenterY']))),
-                   int(float(frap_position['Radius'])), (0, 0, 0), 2)  # x,y,radius
-        plt.title(image_metadata[index][0]['Filename'].replace('.czi', ''))
-        plt.imshow(output)
-        filenames.append(image_metadata[index][0]['Filename'])
-        savename_roi = image_metadata[index][0]['Filename'].replace('.czi', '_bleachframe_ROI.png')
-        savename_roi = ''.join(['FRAP_analysis/', savename_roi])
-        plt.savefig(savename_roi, dpi=300)
-        # plt.show()
-        plt.close()
+            scaling = float(handler.disp_scaling(image_add_metadata)[0])
+            # ic(frap_position, delta_time, scaling)
+
+            frap_positions.append(frap_position)
+            deltaTs.append(delta_time)
+            scalings.append(scaling)
+
+            # save frame after bleaching with ROI
+            plt.figure()
+            ic(image_metadata[index][0]['Filename'])
+            ic(img.shape)
+            #output = img[0][bleach_frame, :, :].copy()
+            output = img[bleach_frame, :, :].copy()
+            cv2.circle(output, (int(float(frap_position['CenterX'])), int(float(frap_position['CenterY']))),
+                       int(float(frap_position['Radius'])), (0, 0, 0), 2)  # x,y,radius
+            plt.title(image_metadata[index][0]['Filename'].replace('.czi', ''))
+            plt.imshow(output)
+            filenames.append(image_metadata[index][0]['Filename'])
+            savename_roi = image_metadata[index][0]['Filename'].replace('.czi', '_bleachframe_ROI.png')
+            savename_roi = ''.join(['FRAP_analysis/', savename_roi])
+            plt.savefig(savename_roi, dpi=300)
+            # plt.show()
+            plt.close()
+
+        # ic(len(image_cxyz_data))
+        # ic(len(image_cxyz_data[0]))
+        # ic(image_cxyz_data[0][0].shape)
+        # ic(image_cxyz_data[0][0].dtype)
+        # ic(image_cxyz_data[0][0].astype(np.float64).dtype)
+
+        hf = h5py.File('data.h5', 'w')
+        hf.create_dataset('image_cxyz_data', data=image_cxyz_data)
+        hf.create_dataset('deltaTs', data=deltaTs)
+        hf.create_dataset('scalings', data=scalings)
+        hf.create_dataset('filenames', data=filenames)
+        hf.close()
+
+        frap_pickle = open("frap.pkl", "wb")
+        pickle.dump(frap_positions, frap_pickle)
+        frap_pickle.close()
+
+        metadata_pickle = open("metadata.pkl", "wb")
+        pickle.dump(image_metadata, metadata_pickle)
+        metadata_pickle.close()
+
+        print('data saved to HDF5 and pickle files')
 
     return image_cxyz_data, frap_positions, deltaTs, scalings, image_metadata, filenames
 
@@ -149,9 +203,13 @@ def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, ima
     bleach = []
     radii = []
 
-    for index, img in enumerate(image_cxyz_data):
-        num_frames = len(img[0][:, :, :, :][bleach_channel])
+#todo make full range (since range already cut)
 
+    for index, img in enumerate(image_cxyz_data):
+        #ic(img.shape)
+        #ic(len(img))
+        num_frames = len(img[:, :, :])
+        ic(num_frames)
         stats = []
 
         x_0 = int(float(frap_positions[index]['CenterX']))
@@ -164,10 +222,13 @@ def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, ima
         radii.append(radius_um)
 
         for frame in range(0, num_frames):
-            # ic(frame)
-            measurement_image = img[0][:, frame, :, :][0]  # .copy()
+            measurement_image = img[frame, :, :]   # .copy()
+
+            #measurement_image = img[0][frame, :, :]   # .copy()
+            #ic(measurement_image.shape)
 
             pixels_in_circle = []
+            #blank_image = np.zeros((264, 264, 3), np.uint8)
 
             for x in range(x_0 - radius_px, x_0 + radius_px):
                 for y in range(y_0 - radius_px, y_0 + radius_px):
@@ -179,10 +240,10 @@ def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, ima
                     if distance_squared <= (radius_px ** 2):
                         pixel_val = measurement_image[y][x]
                         pixels_in_circle.append(pixel_val)
-                        # cv2.circle(blank_image, (x, y), radius=0, color=(255, 0, 255), thickness=-1)
-            # plt.figure()
-            # plt.imshow(blank_image)
-            # plt.show()
+                        #cv2.circle(blank_image, (x, y), radius=0, color=(255, 0, 255), thickness=-1)
+            #plt.figure()
+            #plt.imshow(blank_image)
+            #plt.show()
 
             # print('filename: ', filenames[index])
             # print('no. of GUVs counted: ', len(detected_circles[index]))
@@ -194,8 +255,13 @@ def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, ima
             stats.append(np.mean(pixels_in_circle))
         fluorescence.append(stats)
 
+        plt.figure()
+        plt.plot(stats)
+        plt.show()
+
         ble = stats[0:bleach_frame]
-        rec = stats[bleach_frame:recovery_end_frame]
+        rec = stats[bleach_frame:num_frames]
+        # ic(len(ble), len(rec))
         bleach_norm = ble / np.mean(ble)
         recovery_norm = rec / np.mean(ble)
 
@@ -204,9 +270,9 @@ def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, ima
             recovery.append(recovery_norm)
             bleach.append(bleach_norm)
         else:
-            recovery.append(stats[bleach_frame:recovery_end_frame])
+            recovery.append(stats[bleach_frame:num_frames])
             bleach.append(ble)
-
+        # ic(recovery[0].shape, bleach[0].shape)
         fig, (ax1, ax2) = plt.subplots(1, 2)
         fig.tight_layout(pad=2)
         fig.suptitle(image_metadata[index][0]['Filename'].replace('.czi', ''))
@@ -224,13 +290,16 @@ def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, ima
         # plt.show()
 
     # assume all experiments have same timing
-    time_range = range(bleach_frame, recovery_end_frame)
+    time_range = range(bleach_frame, num_frames)
+    # ic(len(time_range))
     time = [timestep * float(deltaTs[0]) for timestep in time_range]  # convert to actual seconds
 
     return time, bleach, recovery, radii
 
 
 def fit_data(time, recovery, radii, filenames):
+    ic(len(recovery))
+    # ic(recovery.shape)
     """
 
     Args:
@@ -266,14 +335,17 @@ def fit_data(time, recovery, radii, filenames):
         Returns:
 
         """
+        # ic(soumpasis_model(d0, t))
         return norm_intensity - soumpasis_model(d0, t)
 
-    d0 = np.ndarray([10])  # initial guess
+    d0 = [10]  # initial guess
 
     for index, experiment in enumerate(recovery):
+        # ic(experiment.shape, len(time))
         print('fitting: ', filenames[index])
         # area = radii[index]**2*np.pi #in um^2
-        coeffs = scipy.optimize.leastsq(residuals, d0, args=(experiment, time))
+
+        coeffs, cov = scipy.optimize.leastsq(residuals, d0, args=(experiment, time))
 
         diff_const = radii[index] ** 2 / (4 * coeffs)
         ic(diff_const)
@@ -283,8 +355,9 @@ def fit_data(time, recovery, radii, filenames):
         plt.plot(time, experiment, 'k-')
         plt.plot(time, soumpasis_model(coeffs, time), 'r-')
         plt.xlabel('time (s)')
-        plt.ylabel('norm. fluor. (a.u.)')
+        plt.ylabel('norm. fluorescence (a.u.)')
         plt.ylim(top=1)
+        # plt.saveig
         plt.show()
 
     return diffusion_constants
@@ -292,13 +365,15 @@ def fit_data(time, recovery, radii, filenames):
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
-    data_path = '/Volumes/rta-a-scicore-che-palivan$/FG/Palivan/heuber0000/experimental_data/LH22-39/analysis'
+    data_path = '/Users/lukasheuberger/local temp/analysis'
+    # data_path = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data'
     bleach_frame = 5  # frame just after bleaching
     recovery_end_frame = 100
     bleach_channel = 0
 
     image_cxyz_data, frap_positions, deltaTs, scalings, metadata, filenames = init_data(data_path, bleach_frame,
-                                                                                        bleach_channel)
+                                                                                        bleach_channel, recovery_end_frame)
+    ic(image_cxyz_data[0].shape)
     time, bleach, recovery, radii = measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, metadata,
                                                          bleach_frame, recovery_end_frame)
     diffusion_constants = fit_data(time, recovery, radii, filenames)
