@@ -157,12 +157,12 @@ def init_data(path: str, bleach_frame: int, bleach_channel: int, recovery_end_fr
 
     return image_txy_data, frap_positions, deltaTs, scalings, image_metadata, filenames
 
-def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, image_metadata, bleach_frame,
+def measure_fluorescence(image_data, frap_positions, deltaTs, scalings, image_metadata, bleach_frame,
                          recovery_end_frame, norm = True):
     """
 
     Args:
-        image_cxyz_data:
+        image_data:
         frap_positions:
         deltaTs:
         scalings:
@@ -179,9 +179,8 @@ def measure_fluorescence(image_cxyz_data, frap_positions, deltaTs, scalings, ima
     bleach = []
     radii = []
 
-    for index, img in enumerate(image_cxyz_data):
+    for index, img in enumerate(image_data):
         num_frames = len(img[:, :, :])
-        ic(num_frames)
         stats = []
 
         x_0 = int(float(frap_positions[index]['CenterX']))
@@ -285,26 +284,20 @@ def fit_data(time, recovery, radii, filenames, laser_profile):
     diffusion_constants = []
 
     def soumpasis_model(d0, t):  # , radius):
-        tau = d0
-
+        tau = np.array(d0)
         # F(t) = np.exp(-2*tau/t) * (scipy.special.i0(2*tau/t) + scipy.special.i1(2*tau/t))
 
-        # ic(tau)
         # return np.exp(-2*tau/t) * (scipy.special.iv(0, 2*tau/t) + scipy.special.iv(1, 2*tau/t)) #traditional bessel
         # return np.exp(-2*((radius ** 2) / (4 * D))/t) * (scipy.special.i0(2*(radius ** 2 / (4 * D))/t)
         # + scipy.special.i1(2*(radius ** 2 / (4 * D))/t))#
         return np.exp(-2 * tau / t) * (scipy.special.i0(2 * tau / t) + scipy.special.i1(2 * tau / t))  # fast bessel
 
     def confocal_frap_model(F0, K, d0, time, Mf0, r):
-        #ic(F0, K, d0, t, Mf0,r)
-        #ic((1 - (K / (2 + (8 * d0 * t) / (r**2)))) * Mf0 + (1-Mf0) * F0)
-        #ic(len((1 - (K / (2 + (8 * d0 * t) / (r**2)))) * Mf0 + (1-Mf0) * F0))
-        #ic([(1-(K/(2+(8*d0*t)/(r**2))))*Mf0+(1-Mf0)*F0 for t in time])
+        # ic(F0, K, d0, t, Mf0,r)
+        # ic([(1-(K/(2+(8*d0*t)/(r**2))))*Mf0+(1-Mf0)*F0 for t in time])
         return [(1-(K/(2+(8*d0*t)/(r**2))))*Mf0+(1-Mf0)*F0 for t in time]
-        #ic([K/(2+(8*d0*time))for time in t])
-        #exit()
+
     def residuals(x0, norm_intensity, t, r):
-        [d0, Mf0] = x0
         """
 
         Args:
@@ -317,18 +310,23 @@ def fit_data(time, recovery, radii, filenames, laser_profile):
         # ic(norm_intensity)
         # ic(norm_intensity[0])
         # ic(soumpasis_model(d0, t))
+
+        [d0, Mf0] = x0
+
         if laser_profile == 'uniform':
             return norm_intensity - soumpasis_model(d0, t)
-        if laser_profile == 'gaussian':
+
+        elif laser_profile == 'gaussian':
             F0 = norm_intensity[0]
             K = 2-2*F0
             return norm_intensity - confocal_frap_model(F0, K, d0, t, Mf0, r)
+
         else:
             raise ValueError('Unsupported laser profile: %s' % laser_profile)
 
 
-    x0 = [10,10]  # initial guess
-    #todo: maske this work for both cases
+    x0 = [5,10]  # initial guess, d0, Mf0
+    #todo: make this work for both cases
 
     for index, experiment in enumerate(recovery):
         # ic(experiment.shape, len(time))
@@ -336,20 +334,21 @@ def fit_data(time, recovery, radii, filenames, laser_profile):
         # area = radii[index]**2*np.pi #in um^2
 
         coeffs, cov = scipy.optimize.leastsq(residuals, x0, args=(experiment, time, radii[index]))
-        ic(coeffs)
-        #diff_const = radii[index] ** 2 / (4 * coeffs)
-        diff_const = coeffs[0]
-        ic(diff_const)
-        #diffusion_constants.append(diff_const[0])
-        diffusion_constants.append(diff_const)
-
-        F0 = experiment[0]
-        K = 2 - 2 * F0
 
         plt.figure()
+
+        if laser_profile == 'uniform':
+            diff_const = radii[index] ** 2 / (4 * coeffs[0])
+            plt.plot(time, soumpasis_model(coeffs[0], time), 'r-', label='fit')
+
+        elif laser_profile == 'gaussian':
+            diff_const = coeffs[0]
+            F0 = experiment[0]
+            K = 2 - 2 * F0
+            plt.plot(time, confocal_frap_model(F0, K, coeffs[0], time, coeffs[1], radii[index]), 'r-', label='fit')
+            #todo: number seems off, check again
+
         plt.plot(time, experiment, 'k-', label='experiment')
-        plt.plot(time, confocal_frap_model(F0, K, coeffs[0], time, coeffs[1], radii[index]), 'r-', label='fit')
-        #plt.plot(time, soumpasis_model(coeffs, time), 'r-', label='fit')
         plt.xlabel('time (s)')
         plt.ylabel('norm. fluorescence (a.u.)')
         plt.ylim(top=1)
@@ -357,18 +356,20 @@ def fit_data(time, recovery, radii, filenames, laser_profile):
 
         # add diff_const to image
         plt.annotate('D = %.3f $\mu$m$^2$s$^{-1}$' % (diff_const), xy=(0.65, 0.05), xycoords='axes fraction')
-
         savename_fit = filenames[index].replace('.czi', '_fit.png')
         savename_fit = ''.join(['FRAP_analysis/', savename_fit])
         plt.savefig(savename_fit, dpi = 300)
         plt.show()
+
+        diffusion_constants.append(diff_const)
 
     return diffusion_constants
 
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
-    data_path = '/Users/heuberger/code/vesicle-imaging/test_data/frap'
+    data_path = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/frap'
+    # todo set rood dir for whole package
     bleach_frame = 5  # frame just after bleaching
     recovery_end_frame = 100
     bleach_channel = 0

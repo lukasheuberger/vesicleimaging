@@ -125,11 +125,8 @@ dmypy.json
 .pyre/
 
 # custom
-/testdata/
 /.idea/
 .DS_Store
 example_notebook.ipynb
 !/example_notebook.ipynb
 example_notebook.ipynb
-*.czi
-*.png
