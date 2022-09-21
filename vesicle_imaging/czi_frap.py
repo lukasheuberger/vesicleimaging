@@ -149,7 +149,7 @@ def init_data(path: str, bleach: int, channel_bleach: int,
             image_txy_data.append(img_data[0][0:recovery_frame])
         print('IMAGE IMPORT DONE!')
 
-        # handler.disp_basic_img_info(image_cxyz_data, image_metadata)
+        # handler.disp_basic_img_info(data, metadata)
 
         # check if folder exists
         # if not: create folder to save images

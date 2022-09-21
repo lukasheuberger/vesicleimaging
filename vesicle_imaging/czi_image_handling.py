@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 import imgfileutils as imf
 from icecream import ic
 import cv2
+import numpy as np
 from skimage import img_as_ubyte
 
 def get_files(path: str):
@@ -45,8 +46,6 @@ def write_metadata_xml(path: str, files: list):
         xmlfile, filename = xmlfile.rsplit('/', 1)
         xmlfile = ''.join([xmlfile, '/metadata/', filename])
 
-        # xmlfile = ''.join(['metadata/',xmlfile])
-
         # get the element tree
         tree = ET.ElementTree(ET.fromstring(xmlczi))
 
@@ -70,6 +69,28 @@ def load_image_data(files: list):
         all_add_metadata.append(add_metadata)
     return all_img_data, all_metadata, all_add_metadata
 
+def extract_channels(img_data: list[int], type: str):
+    # shape: B, V, C, T, Z, Y, X'
+
+    extracted_channels = []
+    for image in img_data:
+        ic(image.shape)
+        if type == 'zstack':
+            extracted_channels.append(image[0, 0, :, 0, :, :, :])
+        elif type == 'timelapse':# or 'timelapse multi':
+            extracted_channels.append(image[0, 0, :, :, 0, :, :])
+        elif type == 'zstack':
+            extracted_channels.append(image[0, 0, :, 0, :, :, :])
+        elif type == 'image':
+             extracted_channels.append(image[0, 0, 0, 0, :, :, :])
+        elif type == 'timelapse single':
+            #todo: make it possible to specify channel separately
+            extracted_channels.append(image[0, 0, 0, :, 0, :, :])
+        else:
+            raise ValueError('unknown image type: %s' % type)
+
+    ic(extracted_channels[0].shape)
+
 
 def extract_channels_czxy(img_data: list):
     img_czxy_data = []
@@ -85,7 +106,6 @@ def extract_channels_czxy(img_data: list):
         img_czxy_data.append(img[0,0,:,0,:,:,:])
     print ('image CZXY data extracted')
     return img_czxy_data
-
 
 def extract_channels_timelapse_cxyz(img_data):
     channels_timelapse = []
@@ -104,9 +124,7 @@ def disp_channels(add_metadata):#### fix this and combine with bottom one!
     # channels are the same for both conditions
     channel_names = []
     dyes = []
-    add_metadata_detectors = \
-    add_metadata[0]['Experiment']['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup']['TrackSetup'][
-        'Detectors']['Detector']
+    add_metadata_detectors = add_metadata[0]['Experiment']['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup']['TrackSetup']['Detectors']['Detector']
     # channels of all images are the same so image 0 taken
     for channel in add_metadata_detectors:
         print(channel['ImageChannelName'])
@@ -130,13 +148,21 @@ def disp_all_metadata(metadata):
 
 def disp_basic_img_info(img_data, img_metadata):
     for index, img in enumerate(img_data):
-        image = img[0]
-        print('image', index + 1, ':')
-        print('Image: ', img_metadata[index][0]['Filename'])
-        print('CZI Array Shape : ', img_metadata[index][0]['Shape_czifile'])
-        print('CZI Dimension Entry : ', img_metadata[index][0]['DimOrder CZI'])
+        print(f'Image {index + 1}:')
+        print('Filename: ', img_metadata[index]['Filename'])
+        print('CZI Array Shape : ', img_metadata[index]['Shape_czifile'])
+        print('CZI Dimension Entry : ', img_metadata[index]['DimOrder CZI'])
         print('-----------------------------')
-
+    print('shape: B, V, C, T, Z, Y, X, 0')
+    print("""
+    B - aquisition block index in segmented experiments
+    V - View index (for multi – view images, e.g. SPIM)
+    C - Channel in a Multi-Channel data set
+    T - Time point in a sequentially acquired series of data.
+    Z - Slice index (Z – direction).
+    Y - Pixel index / offset in the Y direction
+    X - Pixel index / offset in the X direction
+    """)
 
 def xxxdisp_channels(img_metadata):
     #channels = img_metadata[0][0]['ChannelNames']
@@ -172,13 +198,28 @@ def increase_brightness(img, value=30):
     return img
 
 
-def convert8bit(img):
+def convert8bit(img: list[int]):
     print(img.dtype)
     print('image is uint16, converting to uint8 ...')
-    #img8bit = cv2.convertScaleAbs(img, alpha=(255.0/65535.0))
+    # img8bit = cv2.convertScaleAbs(img, alpha=(255.0/65535.0))
     img8bit = img_as_ubyte(img)
     print('done converting to uint8')
     return img8bit
 
+
+def test_all_functions(path):
+    files, filenames = get_files(path)
+    write_metadata_xml(path, files)
+    img_data, metadata, add_metadata = load_image_data(files)
+
+    # ic(img_data[0].shape)
+    disp_basic_img_info(img_data, metadata)
+    extract_channels(img_data, type = 'timelapse')
+
+
 if __name__ == '__main__':
-    print('yay')
+    # path = input('path to data folder: ')
+    DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
+    test_all_functions(DATA_PATH)
+
+    # todo: function that writes image data to hdf5
