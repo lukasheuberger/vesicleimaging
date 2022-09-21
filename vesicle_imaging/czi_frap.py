@@ -141,8 +141,8 @@ def init_data(path: str, bleach: int, channel_bleach: int,
             image_data.append(data)
             image_metadata.append(metadata)
             image_add_metadata.append(add_metadata)
-            img_data = handler.\
-                extract_channels_timelapse_xyt(data, channel_bleach)
+            img_data = handler.extract_channels(data, type='timelapse',
+                                                channels=[channel_bleach])[0]
 
             # cut all to time of interest for hdf5 export
             # ic(img_data[0][bleach:recovery_frame].shape)

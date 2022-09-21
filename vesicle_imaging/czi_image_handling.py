@@ -69,7 +69,7 @@ def load_image_data(files: list):
         all_add_metadata.append(add_metadata)
     return all_img_data, all_metadata, all_add_metadata
 
-def extract_channels(img_data: list[int], type: str):
+def extract_channels(img_data: list[int], type: str, channels = None):
     # shape: B, V, C, T, Z, Y, X'
 
     extracted_channels = []
@@ -77,54 +77,27 @@ def extract_channels(img_data: list[int], type: str):
         ic(image.shape)
         if type == 'zstack':
             extracted_channels.append(image[0, 0, :, 0, :, :, :])
-        elif type == 'timelapse':# or 'timelapse multi':
-            extracted_channels.append(image[0, 0, :, :, 0, :, :])
+
         elif type == 'zstack':
             extracted_channels.append(image[0, 0, :, 0, :, :, :])
         elif type == 'image':
              extracted_channels.append(image[0, 0, 0, 0, :, :, :])
-        elif type == 'timelapse single':
-            #todo: make it possible to specify channel separately
-            extracted_channels.append(image[0, 0, 0, :, 0, :, :])
+        elif type == 'timelapse':
+            # check if timelapse needs to be reduced to certain channels
+            if channels is not None:
+                extracted_channels.append(image[0, 0, channels, :, 0, :, :])
+            else:
+                extracted_channels.append(image[0, 0, :, :, 0, :, :])
         else:
             raise ValueError('unknown image type: %s' % type)
 
-    ic(extracted_channels[0].shape)
-
-
-def extract_channels_czxy(img_data: list):
-    img_czxy_data = []
-    for index, img in enumerate(img_data):
-        ic(index)
-        #ic(img)
-        ic(img.shape)
-        channels_cxyz = []
-        # for image in img:
-        #     ic(image.shape)
-        #     channels_cxyz.append(image[0, 0, :, 0, :, :, :])
-        #     #channels_xy.append(image[:, :, :])
-        img_czxy_data.append(img[0,0,:,0,:,:,:])
-    print ('image CZXY data extracted')
-    return img_czxy_data
-
-def extract_channels_timelapse_cxyz(img_data):
-    channels_timelapse = []
-    for image in img_data:
-        channels_timelapse.append(image[0, 0, :, :, 0, :, :])
-    return channels_timelapse
-
-def extract_channels_timelapse_xyt(img_data, channel_no):
-    xyt_timelapse = []
-    for image in img_data:
-        xyt_timelapse.append(image[0, 0, channel_no, :, 0, :, :])
-    #ic(xyt_timelapse[0].shape)
-    return xyt_timelapse
+    return extracted_channels
 
 def disp_channels(add_metadata):#### fix this and combine with bottom one!
     # channels are the same for both conditions
     channel_names = []
     dyes = []
-    add_metadata_detectors = add_metadata[0]['Experiment']['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup']['TrackSetup']['Detectors']['Detector']
+    add_metadata_detectors = add_metadata['Experiment']['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup']['TrackSetup']['Detectors']['Detector']
     # channels of all images are the same so image 0 taken
     for channel in add_metadata_detectors:
         print(channel['ImageChannelName'])
@@ -140,7 +113,7 @@ def disp_channels(add_metadata):#### fix this and combine with bottom one!
 def disp_all_metadata(metadata):
     # show all the metadata
     for index, image in enumerate(metadata):
-        for key, value in image[0].items():
+        for key, value in image.items():
             # print all key-value pairs for the dictionary
             print(key, ' : ', value)
         print('------------------------------------')
@@ -214,8 +187,12 @@ def test_all_functions(path):
 
     # ic(img_data[0].shape)
     disp_basic_img_info(img_data, metadata)
-    extract_channels(img_data, type = 'timelapse')
+    img_reduced = extract_channels(img_data, type = 'timelapse')
+    ic(img_reduced[0].shape)
 
+    disp_all_metadata(metadata)
+
+    disp_channels(add_metadata) #todo needs to be fixed
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
