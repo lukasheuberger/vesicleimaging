@@ -1,3 +1,12 @@
+"""Toolset to analyze FRAP experiments from czi files
+
+This module contains functions to load and analyze FRAP experiments from czi files.
+It loads all czi files and extracts the metadata and image data. It then uses
+the metadata to extract the positions of the FRAP circles and the scaling factors
+and fits the FRAP curves to the corresponding diffusion models.
+
+"""
+
 import os
 
 import cv2
@@ -16,7 +25,7 @@ from vesicle_imaging import czi_image_handling as handler
 def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
     """
     The init_data function imports the image data and metadata from a folder containing .czi files.
-    It also extracts the FRAP ROI position, delta time between frames, and scaling factor for each image.
+    It extracts the FRAP ROI position, time delta between frames, and scaling factor for each image.
     The function returns all of these variables as outputs.
 
     Args:
@@ -37,21 +46,20 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
     # check if hdf5 file exists and load that instead of all data
     if os.path.exists('data.h5'):
         print('data file already exists, loading data ...')
-        hf = h5py.File('data.h5', 'r')
+        hf_file = h5py.File('data.h5', 'r')
         # ic(hf.keys())
-        image_txy_data = np.array(hf.get('image_cxyz_data'))
-        delta_ts = np.array(hf.get('deltaTs'))
-        scalings = np.array(hf.get('scalings'))
-        filenames = np.array(hf.get('filenames'))
-        hf.close()
-        filenames = [filename.decode() for filename in filenames]
-        frap_pickle = open("frap.pkl", "rb")
-        frap_positions = pickle.load(frap_pickle)
-        frap_pickle.close()
+        image_txy_data = np.array(hf_file.get('image_cxyz_data'))
+        delta_ts = np.array(hf_file.get('deltaTs'))
+        scalings = np.array(hf_file.get('scalings'))
+        filenames = np.array(hf_file.get('filenames'))
+        hf_file.close()
 
-        metadata_pickle = open("metadata.pkl", "rb")
-        image_metadata = pickle.load(metadata_pickle)
-        metadata_pickle.close()
+        filenames = [filename.decode() for filename in filenames]
+        with open("frap.pkl", "rb") as frap_pickle:
+            frap_positions = pickle.load(frap_pickle)
+
+        with open("metadata.pkl", "rb") as metadata_pickle:
+            image_metadata = pickle.load(metadata_pickle)
 
     else:
         files, filenames = handler.get_files(path)
@@ -76,7 +84,8 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
             image_metadata.append(metadata)
             image_add_metadata.append(add_metadata)
             img_data = handler.extract_channels_timelapse_xyt(data, channel_bleach)
-            ic(img_data[0][bleach:recovery_frame].shape)  # cut all to time of interest for hdf5 export
+            # cut all to time of interest for hdf5 export
+            ic(img_data[0][bleach:recovery_frame].shape)
             image_txy_data.append(img_data[0][0:recovery_frame])
         print('IMAGE IMPORT DONE!')
 
@@ -105,8 +114,8 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
             # plt.show()
 
             # read ROI info from metadata
-            frap_position = dict(image_add_metadata[0][0]['Layers']['Layer'][0]['Elements']['Circle'][
-                                     'Geometry'])  # centerx, centery, radius
+            frap_position = dict(image_add_metadata[0][0]['Layers']['Layer'][0]['Elements'] \
+                                 ['Circle']['Geometry'])  # centerx, centery, radius
             delta_time = image_add_metadata[0][0]['DisplaySetting']['Information']['Image'] \
                 ['Dimensions']['Channels']['Channel'][0]['LaserScanInfo']['FrameTime']
             scaling = float(handler.disp_scaling(image_add_metadata)[0])
@@ -121,46 +130,47 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
             ic(img.shape)
             # output = img[0][bleach_frame, :, :].copy()
             output = img[bleach, :, :].copy()
-            cv2.circle(output, (int(float(frap_position['CenterX'])), int(float(frap_position['CenterY']))),
-                       int(float(frap_position['Radius'])), (0, 0, 0), 2)  # x,y,radius
+            cv2.circle(output, (int(float(frap_position['CenterX'])),
+                                int(float(frap_position['CenterY']))),
+                                int(float(frap_position['Radius'])), (0, 0, 0), 2)  # x,y,radius
             plt.title(image_metadata[index][0]['Filename'].replace('.czi', ''))
             plt.imshow(output)
             filenames.append(image_metadata[index][0]['Filename'])
-            savename_roi = image_metadata[index][0]['Filename'].replace('.czi', '_bleachframe_ROI.png')
+            savename_roi = image_metadata[index][0]['Filename']\
+                .replace('.czi', '_bleachframe_ROI.png')
             savename_roi = ''.join(['FRAP_analysis/', savename_roi])
             plt.savefig(savename_roi, dpi=300)
             # plt.show()
             plt.close()
 
         # save image data to hdf5 file
-        hf = h5py.File('data.h5', 'w')
-        hf.create_dataset('image_cxyz_data', data=image_txy_data)
-        hf.create_dataset('deltaTs', data=delta_ts)
-        hf.create_dataset('scalings', data=scalings)
-        hf.create_dataset('filenames', data=filenames)
-        hf.close()
+        hf_file = h5py.File('data.h5', 'w')
+        hf_file.create_dataset('image_cxyz_data', data=image_txy_data)
+        hf_file.create_dataset('deltaTs', data=delta_ts)
+        hf_file.create_dataset('scalings', data=scalings)
+        hf_file.create_dataset('filenames', data=filenames)
+        hf_file.close()
 
         # save frap_positions to pickle file
-        frap_pickle = open('frap.pkl', 'wb')
-        pickle.dump(frap_positions, frap_pickle)
-        frap_pickle.close()
+        with open('frap.pkl', 'wb') as frap_pickle:
+            pickle.dump(frap_positions, frap_pickle)
 
         # save metadata to pickle file
-        metadata_pickle = open('metadata.pkl', 'wb')
-        pickle.dump(image_metadata, metadata_pickle)
-        metadata_pickle.close()
+        with open('metadata.pkl', 'wb') as metadata_pickle:
+            pickle.dump(image_metadata, metadata_pickle)
 
         print('data saved to HDF5 and pickle files')
 
     return image_txy_data, frap_positions, delta_ts, scalings, image_metadata, filenames
 
 
-def measure_fluorescence(image_data: list[int], frap_positions: list[dict], delta_t: list[float], scalings: list[float],
+def measure_fluorescence(image_data: list[int], frap_positions: list[dict],
+                         delta_t: list[float], scalings: list[float],
                          image_metadata: list[dict], frame_bleach: int, normalize=True):
     """
     The measure_fluorescence function takes a list of image data, a list of frap positions,
     a list of deltaTs (time between frames), and a scaling factor. It returns the time range
-    (in seconds) for each experiment as well as the bleaching curve and recovery curves for each experiment.
+    (in s), bleaching curve and recovery curves for each experiment.
 
     Args:
         image_data:list: Pass a list of image data (as returned by the load_image function)
@@ -201,14 +211,14 @@ def measure_fluorescence(image_data: list[int], frap_positions: list[dict], delt
             pixels_in_circle = []
 
             # iterate over all pixels in bleached circle
-            for x in range(x_0 - radius_px, x_0 + radius_px):
-                for y in range(y_0 - radius_px, y_0 + radius_px):
-                    dx = x - x_0
-                    dy = y - y_0
+            for x_coord in range(x_0 - radius_px, x_0 + radius_px):
+                for y_coord in range(y_0 - radius_px, y_0 + radius_px):
+                    delta_x = x_coord - x_0
+                    delta_y = y_coord - y_0
 
-                    distance_squared = dx ** 2 + dy ** 2
+                    distance_squared = delta_x ** 2 + delta_y ** 2
                     if distance_squared <= (radius_px ** 2):
-                        pixel_val = measurement_image[y][x]
+                        pixel_val = measurement_image[y_coord][x_coord]
                         pixels_in_circle.append(pixel_val)
 
             # print('filename: ', filenames[index])
@@ -217,12 +227,16 @@ def measure_fluorescence(image_data: list[int], frap_positions: list[dict], delt
             # print('max: ', np.max(pixels_in_circle))
             # print('average: ', np.mean(pixels_in_circle))
             # print('stdev: ', np.std(pixels_in_circle))
-            experiment_statistics.append(np.mean(pixels_in_circle))  # append mean of all pixels
+
+            # append mean of all pixels
+            experiment_statistics.append(np.mean(pixels_in_circle))
         fluorescence.append(experiment_statistics)
 
         fluorescence_baseline = experiment_statistics[0:frame_bleach]
         recovery_raw = experiment_statistics[frame_bleach:num_frames]
-        bleach_norm = fluorescence_baseline / np.mean(fluorescence_baseline)  # normalize bleaching to 1
+
+        # normalize bleaching to 1
+        bleach_norm = fluorescence_baseline / np.mean(fluorescence_baseline)
         recovery_norm = recovery_raw / np.mean(fluorescence_baseline)
 
         # default return normalized values
@@ -257,14 +271,16 @@ def measure_fluorescence(image_data: list[int], frap_positions: list[dict], delt
     # convert to actual seconds
     time = [timestep * float(delta_t[0]) for timestep in time_range]
 
-    return time, bleach, recovery, radii
+    return time, recovery, radii
 
 
-def fit_data(time: list[float], recovery: list[float], radii: list[float], filenames: list[str], laser_profile: str):
+def fit_data(time: list[float], recovery: list[float], radii: list[float],
+             filenames: list[str], laser_profile: str):
     """
     The fit_data function takes a list of time values, a list of recovery values,
     a list of filenames and the name of the laser profile.  It then fits these data to
-    the appropriate model (uniform or gaussian) and returns an array containing the diffusion constants for each image.
+    the appropriate model (uniform or gaussian) and returns an array containing
+    the diffusion constants for each image.
 
 
     Args:
@@ -278,15 +294,15 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
         The fitted values of the diffusion coefficient, d0
     """
 
-    def soumpasis_model(d0: int, t: list[float]):
+    def soumpasis_model(d0: int, t: list[float], bessel_type: str = 'fast'):
         """
         The soumpasis_model function takes a single parameter, d0, which is the initial
         value of the model.  It then takes a list of time values and returns an array
         of modeled values for each time value in the list.  The soumpasis_model function
-        uses scipy's bessel functions to calculate F(t) = exp(-2*tau/t)*(I0(2*tau/t)+I0(2*d0/d))
-
-        based on Soumpasis DM. Theoretical analysis of fluorescence photobleaching recovery experiments.
-        Biophys J. 1983 Jan;41(1):95-7. doi: 10.1016/S0006-3495(83)84410-5.
+        uses scipy's bessel functions to calculate
+        F(t) = exp(-2*tau/t)*(I0(2*tau/t)+I0(2*d0/d))
+        based on Soumpasis DM. Theoretical analysis of fluorescence photobleaching recovery
+        experiments. Biophys J. 1983 Jan;41(1):95-7. doi: 10.1016/S0006-3495(83)84410-5.
 
         Args:
             d0:int: initial value of tau
@@ -296,13 +312,19 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
             The values of the model for a given value of d0 and a list of t values
         """
 
-        tau = np.array(d0)
         # F(t) = np.exp(-2*tau/t) * (scipy.special.i0(2*tau/t) + scipy.special.i1(2*tau/t))
+        tau = np.array(d0)
 
-        # return np.exp(-2*tau/t) * (scipy.special.iv(0, 2*tau/t) + scipy.special.iv(1, 2*tau/t)) #traditional bessel
-        return np.exp(-2 * tau / t) * (scipy.special.i0(2 * tau / t) + scipy.special.i1(2 * tau / t))  # fast bessel
+        if bessel_type == 'fast':
+            return np.exp(-2 * tau / t) * (scipy.special.i0(2 * tau / t)
+                                           + scipy.special.i1(2 * tau / t))
+        if bessel_type =='traditional':
+            return np.exp(-2*tau/t) * (scipy.special.iv(0, 2*tau/t) + scipy.special.iv(1, 2*tau/t))
+        else:
+            raise ValueError('bessel_type must be either "fast" or "traditional"')
 
-    def confocal_frap_model(k: float, d0: int, time_array: list[float], radius: float, mf0: int, f0: float):
+    def confocal_frap_model(k: float, d0: int, time_array: list[float],
+                            radius: float, mobile_fract: int, f0: float):
         """
         The confocal_frap_model function computes the FRAP curve for a given set of parameters.
         F(t) = (1-(k/(2+(8*d0*t)/(r**2))))*mobile_fraction+(1-mobile_fraction)*F0
@@ -315,7 +337,7 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
             d0:int: Describe the diffusion of f-actin around the mt
             time_array:list: Calculate the time dependent parameters
             radius:float: Define the size of the sample
-            mf0:float: mobile fraction, defines the initial fraction of fluorophores in the ground state
+            mobile_fract:float: mobile fraction
             (mf0 = 1 means all fluorophores are in the ground state)
             f0:float: Set the initial fluorescence intensity
 
@@ -325,14 +347,17 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
         """
         # ic(F0, k, d0, t, mobile_fraction,r)
         # ic([(1-(k/(2+(8*d0*t)/(r**2))))*mobile_fraction+(1-mobile_fraction)*F0 for t in time])
-        return [(1 - (k / (2 + (8 * d0 * t) / (radius ** 2)))) * mf0 + (1 - mf0) * f0 for t in time_array]
+        return [(1 - (k / (2 + (8 * d0 * t) / (radius ** 2))))
+                * mobile_fract + (1 - mobile_fract) * f0 for t in time_array]
 
-    def residuals(guess: list[int], norm_intensity: list[float], t: list[float], r: float, f0: float, k: float):
+    def residuals(guess: list[int], norm_intensity: list[float],
+                  t: list[float], r: float, f0: float, k: float):
         """
-        The residuals function computes the difference between the measured fluorescence intensity and
-        the predicted fluorescence intensity from a model of the confocal FRAP experiment. The residuals
-        are returned as an array, which is then used by scipy.optimize to minimize the sum of squared
-        residuals.
+        The residuals function computes the difference between the measured
+        fluorescence intensity and the predicted fluorescence intensity from
+        a model of the confocal FRAP experiment. The residuals are returned
+        as an array, which is then used by scipy.optimize to minimize the sum
+        of squared residuals.
 
         Args:
             guess:list[int]: Pass the initial guess for the parameters
@@ -346,17 +371,13 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
             The difference between the measured and fitted data
         """
 
-        [d0, mobile_fraction] = guess
+        [d0, mf0] = guess
 
         if laser_profile == 'uniform':
             return norm_intensity - soumpasis_model(d0, t)
-
-        elif laser_profile == 'gaussian':
-            k = 2 - 2 * f0  # init_fluorescence = fluorescence before bleaching
-            return norm_intensity - confocal_frap_model(k, d0, t, r, mobile_fraction, init_fluorescence)
-
-        else:
-            raise ValueError('Unsupported laser profile: %s' % laser_profile)
+        if laser_profile == 'gaussian':
+            return norm_intensity - confocal_frap_model(k, d0, t, r, mf0, f0)
+        raise ValueError(f'Unsupported laser profile: {laser_profile}')
 
     diffusion_constants = []
     x0 = np.array([5, 10])  # initial guess; diffusion coeff, mobile fraction
@@ -364,10 +385,10 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
     # iterate over experiments
     for index, experiment in enumerate(recovery):
         print('fitting: ', filenames[index])
-        init_fluorescence = experiment[0]
+        init_fluorescence = experiment[0] # init_fluorescence = fluorescence before bleaching
         bleach_depth = 2 - 2 * init_fluorescence
 
-        coeffs, cov = scipy.optimize.leastsq(residuals, x0, args=(experiment, time, radii[index],
+        coeffs, _ = scipy.optimize.leastsq(residuals, x0, args=(experiment, time, radii[index],
                                                                   init_fluorescence, bleach_depth))
 
         plt.figure()
@@ -376,7 +397,7 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
             diff_const = radii[index] ** 2 / (4 * coeffs[0])
             plt.plot(time, soumpasis_model(coeffs[0], time), 'r-', label='fit')
 
-        elif laser_profile == 'gaussian':
+        if laser_profile == 'gaussian':
             diff_const = coeffs[0]
             plt.plot(time, confocal_frap_model(bleach_depth, coeffs[0], time, radii[index],
                                                coeffs[1], init_fluorescence), 'r-', label='fit')
@@ -389,7 +410,8 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
         plt.legend()
 
         # add diff_const to image
-        plt.annotate('D = %.3f $\mu$m$^2$s$^{-1}$' % diff_const, xy=(0.65, 0.05), xycoords='axes fraction')
+        plt.annotate(fr'D = {diff_const:.3f} $\mu$m$^2$s$^{-1}$',
+                     xy=(0.65, 0.05), xycoords='axes fraction')
         savename_fit = filenames[index].replace('.czi', '_fit.png')
         savename_fit = ''.join(['FRAP_analysis/', savename_fit])
         plt.savefig(savename_fit, dpi=300)
@@ -400,31 +422,34 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float], filen
     return diffusion_constants
 
 
-def frap_analysis(path: str, bleach_frame: int = 5, recovery_end: int = 100, channel_bleach: int = 0):
+def frap_analysis(path: str, bleach_frame: int = 5,
+                  recovery_end: int = 100, channel_bleach: int = 0):
     """
     The frap_analysis function takes a path to a folder of images and performs the following:
         1. Initializes data from the images in the folder
         2. Measures fluorescence recovery for each image, using an input bleach frame and end frame
-        3. Fits data to obtain diffusion constants for each image, using Gaussian laser profiles as input
+        3. Fits data to obtain diffusion constants for each image,
+            using Gaussian laser profiles as input
 
     Args:
         path:str: Specify the location of the data
-        bleach_frame:int=5: Specify the frame number of the image that will be used as a reference for bleaching
+        bleach_frame:int=5: frame number of the image that will be used as reference for bleaching
         recovery_end:int=100: Specify the end of the recovery period
         channel_bleach:int=0: Select the channel that is used for the bleaching analysis
 
     Returns:
-        A pandas dataframe with the filename, frap position, scaling factor and diffusion constant for each file
+        A pandas dataframe with the filename, frap position, scaling factor,
+         and diffusion constant for each file
 
 
     """
 
-    image_data, frap_positions, time_delta, scalings, metadata, filenames = init_data(path, bleach_frame,
-                                                                                      channel_bleach,
-                                                                                      recovery_end)
+    image_data, frap_positions, time_delta, scalings, metadata, filenames =\
+        init_data(path, bleach_frame, channel_bleach, recovery_end)
     # ic(image_data[0].shape)
-    time, bleach, recovery, radii = measure_fluorescence(image_data, frap_positions, time_delta, scalings, metadata,
-                                                         bleach_frame)
+    time, recovery, radii = measure_fluorescence(
+        image_data, frap_positions, time_delta, scalings, metadata, bleach_frame)
+
     diffusion_constants = fit_data(time, recovery, radii, filenames, laser_profile='uniform')
     # ic(diffusion_constants)
 
