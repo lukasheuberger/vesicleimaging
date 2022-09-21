@@ -20,6 +20,10 @@ def get_files(path: str):
                     filenames.append(file)
                     file_path = os.path.join(r, file)
                     files.append(file_path)
+
+    filenames.sort(reverse=True)
+    files.sort(reverse=True)
+
     return files, filenames
 
 
