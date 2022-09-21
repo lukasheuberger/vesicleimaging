@@ -2,18 +2,24 @@ import matplotlib.pyplot as plt
 
 def barplot_annotate_brackets(num1, num2, data, center, height, yerr=None, dh=.05, barh=.05, fs=None, maxasterix=4):
     """
-    Annotate barplot with p-values.
+    The barplot_annotate_brackets function adds p-values to the barplot.
 
-    :param num1: number of left bar to put bracket over
-    :param num2: number of right bar to put bracket over
-    :param data: string to write or number for generating asterixes
-    :param center: centers of all bars (like plt.bar() input)
-    :param height: heights of all bars (like plt.bar() input)
-    :param yerr: yerrs of all bars (like plt.bar() input)
-    :param dh: height offset over bar / bar + yerr in axes coordinates (0 to 1)
-    :param barh: bar height in axes coordinates (0 to 1)
-    :param fs: font size
-    :param maxasterix: maximum number of asterixes to write (for very small p-values)
+
+    Args:
+        num1: Specify the number of the left bar to put the bracket over
+        num2: Specify which right bar the bracket should be placed over
+        data: string to write or number for generating asterixes
+        center: centers of all bars (like plt.bar() input)
+        height: heights of all bars (like plt.bar() input)
+        yerr=None: yerrs of all bars (like plt.bar() input)
+        dh=.05: height offset over bar / bar + yerr in axes coordinates (0 to 1)
+        barh=.05: bar height in axes coordinates (0 to 1)
+        fs=None: font size
+        maxasterix=4: maximum number of asterixes to write (for very small p-values)
+
+    Returns:
+        A string
+
     """
 
     if type(data) is str:
