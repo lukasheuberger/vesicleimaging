@@ -7,6 +7,7 @@ from icecream import ic
 import cv2
 from skimage import img_as_ubyte
 import imgfileutils as imf
+import h5py
 
 
 def get_files(path: str):
@@ -340,42 +341,29 @@ def convert8bit(img: list[int]):
 
     return img8bit
 
-def save_files(data: list[int], time: list[float], scale: list[float],
-               filename: list[str], frap: list[float], metadata: list[str]):
-    """
-    https://realpython.com/python-kwargs-and-args/
-    The save_files function saves the data from the image_cxyz_data,
-    deltaTs, scalings and filenames to a hdf5 file called 'data.h5'.
-    It also saves frap positions to a pickle file called 'frap.pkl'
-    and metadata to a pickle file called 'metadata.pkl'.
+def save_files(data: list[int], metadata: list[str], add_metadata: list[str]):
 
-    Args:
-        data:list[int]: image data
-        time:list[float]: time axis of data (in seconds)
-        scale:list[float]: Scale the data
-        filename:list[str]: filenames of image data files
-        frap:list[float]: Save the frap_positions to a pickle file
-        metadata:list[str]: Store the metadata of the experiment
 
-    Returns:
-        A tuple containing the data, time, scale,
-        filename and frap variables
-    """
+    # create a temporary list of filename for storing in hdf5
+    filenames = []
+    for image in metadata:
+        filenames.append(image['Filename'])
 
     hf_file = h5py.File('data.h5', 'w')
-    hf_file.create_dataset('image_cxyz_data', data=data)
-    hf_file.create_dataset('deltaTs', data=time)
-    hf_file.create_dataset('scalings', data=scale)
+    hf_file.create_dataset('filenames', data=filenames)
+    hf_file.create_dataset('images', data=data)
+    hf_file.create_dataset('metadata', data=metadata)
+    hf_file.create_dataset('add metadata', data=add_metadata)
     hf_file.create_dataset('filenames', data=filename)
     hf_file.close()
 
-    # save frap_positions to pickle file
-    with open('frap.pkl', 'wb') as frap_pickle:
-        pickle.dump(frap, frap_pickle)
-
-    # save metadata to pickle file
-    with open('metadata.pkl', 'wb') as metadata_pickle:
-        pickle.dump(metadata, metadata_pickle)
+    # # save frap_positions to pickle file
+    # with open('frap.pkl', 'wb') as frap_pickle:
+    #     pickle.dump(frap, frap_pickle)
+    #
+    # # save metadata to pickle file
+    # with open('metadata.pkl', 'wb') as metadata_pickle:
+    #     pickle.dump(metadata, metadata_pickle)
 
 
 
@@ -411,11 +399,13 @@ def test_all_functions(path):
 
     disp_scaling(add_metadata)
 
+    save_files(img_data, metadata, add_metadata)
+
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
-    # DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
-    DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
+    DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
+    #DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
     test_all_functions(DATA_PATH)
 
     # todo: function that writes image data to hdf5
