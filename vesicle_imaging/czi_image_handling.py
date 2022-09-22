@@ -340,6 +340,44 @@ def convert8bit(img: list[int]):
 
     return img8bit
 
+def save_files(data: list[int], time: list[float], scale: list[float],
+               filename: list[str], frap: list[float], metadata: list[str]):
+    """
+    https://realpython.com/python-kwargs-and-args/
+    The save_files function saves the data from the image_cxyz_data,
+    deltaTs, scalings and filenames to a hdf5 file called 'data.h5'.
+    It also saves frap positions to a pickle file called 'frap.pkl'
+    and metadata to a pickle file called 'metadata.pkl'.
+
+    Args:
+        data:list[int]: image data
+        time:list[float]: time axis of data (in seconds)
+        scale:list[float]: Scale the data
+        filename:list[str]: filenames of image data files
+        frap:list[float]: Save the frap_positions to a pickle file
+        metadata:list[str]: Store the metadata of the experiment
+
+    Returns:
+        A tuple containing the data, time, scale,
+        filename and frap variables
+    """
+
+    hf_file = h5py.File('data.h5', 'w')
+    hf_file.create_dataset('image_cxyz_data', data=data)
+    hf_file.create_dataset('deltaTs', data=time)
+    hf_file.create_dataset('scalings', data=scale)
+    hf_file.create_dataset('filenames', data=filename)
+    hf_file.close()
+
+    # save frap_positions to pickle file
+    with open('frap.pkl', 'wb') as frap_pickle:
+        pickle.dump(frap, frap_pickle)
+
+    # save metadata to pickle file
+    with open('metadata.pkl', 'wb') as metadata_pickle:
+        pickle.dump(metadata, metadata_pickle)
+
+
 
 def test_all_functions(path):
     """
