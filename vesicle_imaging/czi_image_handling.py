@@ -2,12 +2,14 @@
 import os
 
 import xml.etree.ElementTree as ET
+import pickle
 import czifile
 from icecream import ic
 import cv2
 from skimage import img_as_ubyte
-import imgfileutils as imf
 import h5py
+import numpy as np
+import imgfileutils as imf
 
 
 def get_files(path: str):
@@ -23,10 +25,16 @@ def get_files(path: str):
     Returns:
         A list of the files in the folder and a list of the filenames
     """
+
+    # Load the data
+    os.chdir(path)
+    # ic(os.listdir(path))
+    ic(os.getcwd())
+
     files_array = []
     filenames = []
     # r=root, d=directories, f = files
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         files.sort()
         for file in files:
             if '.czi' in file:
@@ -98,6 +106,7 @@ def load_image_data(files: list, write_metadata: bool = False):
     Returns:
         Three values: all_img_data, all_metadata, and all_additional metadata
     """
+
     all_img_data = []
     all_metadata = []
     all_add_metadata = []
@@ -248,6 +257,7 @@ def disp_basic_img_info(img_data, img_metadata):
         The basic information about the image data and metadata
     """
 
+    print('------------------------------------')
     for index in range(len(img_data)):
         print(f'Image {index + 1}:')
         print('Filename: ', img_metadata[index]['Filename'])
@@ -282,7 +292,7 @@ def disp_scaling(img_add_metadata):
     """
 
     scaling_x = []
-    for index, image in enumerate(img_add_metadata):
+    for image in img_add_metadata:
         scale = image['Experiment']['ExperimentBlocks']\
             ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
         scaling_x.append(scale)
@@ -312,13 +322,13 @@ def increase_brightness(img, value=30):
     """
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    h, s, v = cv2.split(hsv)
+    hue, sat, val = cv2.split(hsv)
 
     lim = 255 - value
-    v[v > lim] = 255
-    v[v <= lim] += value
+    val[val > lim] = 255
+    val[val <= lim] += value
 
-    final_hsv = cv2.merge((h, s, v))
+    final_hsv = cv2.merge((hue, sat, val))
     img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
     return img
 
@@ -341,30 +351,94 @@ def convert8bit(img: list[int]):
 
     return img8bit
 
-def save_files(data: list[int], metadata: list[str], add_metadata: list[str]):
 
+def save_files(data: list[int], metadata: list[str], add_metadata: list[str]):
+    """
+    The save_files function takes in a list of images, and saves them to
+    hdf5 files. The function also takes in a list of metadata and
+    additional metadata and saves them to a pickle file.
+
+    Args:
+        data:list[int]: Store the image data in a list
+        metadata:list[str]: Store the metadata of each image in a list
+        add_metadata:list[str]: Save additional metadata to the hdf5 file
+
+    Returns:
+        A list of filenames that have been saved to hdf5
+    """
 
     # create a temporary list of filename for storing in hdf5
     filenames = []
     for image in metadata:
         filenames.append(image['Filename'])
 
-    hf_file = h5py.File('data.h5', 'w')
-    hf_file.create_dataset('filenames', data=filenames)
-    hf_file.create_dataset('images', data=data)
-    hf_file.create_dataset('metadata', data=metadata)
-    hf_file.create_dataset('add metadata', data=add_metadata)
-    hf_file.create_dataset('filenames', data=filename)
-    hf_file.close()
+    for index, image in enumerate(data):
+        temp_filename_base = filenames[index].split('.')[0]
+        temp_filename_h5 = temp_filename_base + '.h5'
+        # ic(temp_filename_base)
 
-    # # save frap_positions to pickle file
-    # with open('frap.pkl', 'wb') as frap_pickle:
-    #     pickle.dump(frap, frap_pickle)
-    #
-    # # save metadata to pickle file
-    # with open('metadata.pkl', 'wb') as metadata_pickle:
-    #     pickle.dump(metadata, metadata_pickle)
+        h5file = h5py.File(temp_filename_h5, 'w')
+        h5file.create_dataset('filename', data=filenames[index])
+        h5file.create_dataset('image', data=image)
+        h5file.close()
+        print(f'hdf5 file {temp_filename_h5} created successfully.')
 
+        # save metadata to pickle file
+        temp_filename_metadata = temp_filename_base + '_metadata.pkl'
+        with open(temp_filename_metadata, 'wb') as metadata_pickle:
+            pickle.dump(metadata[index], metadata_pickle)
+        print(f'    - pickle file '
+              f'{temp_filename_metadata} created successfully.')
+
+        # save additional metadata to pickle file
+        temp_filename_add_metadata = temp_filename_base + '_addmetadata.pkl'
+        with open(temp_filename_add_metadata, 'wb') as add_metadata_pickle:
+            pickle.dump(add_metadata[index], add_metadata_pickle)
+        print(f'    - pickle file '
+              f'{temp_filename_add_metadata} created successfully.')
+
+
+def load_data(path: str):
+    """
+    The load_data function loads the data from a given path.
+    It returns three lists: image_data, metadata and add_metadata.
+    The image_data list contains all the images in numpy array format,
+    the metadata list contains all the metadata in dictionary format
+    and add_metadata is a list of dictionaries containing additional
+    information about each image.
+
+    Args:
+        path:str: Specify the path to the folder containing data files
+
+    Returns:
+        A tuple of three lists
+    """
+
+    image_data = []
+    metadata = []
+    add_metadata = []
+
+    for file in os.listdir(path):
+        if file.endswith(".h5"):
+            print(f'loading {file} ...')
+
+            h5file = h5py.File(file, 'r')
+            # ic(h5file.keys())
+            data = np.array(h5file.get('image'))
+            image_data.append(data)
+            h5file.close()
+
+        if file.endswith("_metadata.pkl"):
+            with open(file, "rb") as metadata_pickle:
+                meta = pickle.load(metadata_pickle)
+                metadata.append(meta)
+
+        if file.endswith("_add_metadata.pkl"):
+            with open(file, "rb") as add_metadata_pickle:
+                add_meta = pickle.load(add_metadata_pickle)
+                add_metadata.append(add_meta)
+
+    return image_data, metadata, add_metadata
 
 
 def test_all_functions(path):
@@ -399,13 +473,14 @@ def test_all_functions(path):
 
     disp_scaling(add_metadata)
 
-    save_files(img_data, metadata, add_metadata)
+    save_files(img_reduced, metadata, add_metadata)
+
+    load_data(path)
 
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
     DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
-    #DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
+    # DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging
+    # /test_data/general'
     test_all_functions(DATA_PATH)
-
-    # todo: function that writes image data to hdf5
