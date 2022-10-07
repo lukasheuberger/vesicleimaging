@@ -15,13 +15,13 @@ ic(curr_dir)
 
 data = pd.read_excel(data_path, 'all data')
 ic(data.head())
-data['condition'] = pd.Categorical(data['condition'], ["empty, fresh", "empty, treated", "biofilm"])
+data['condition'] = pd.Categorical(data['condition'], ["empty, treated", "biofilm"])
 ic(data.head())
 #######################################################################
-print('comparison osmolarity diff')
+print('comparison biofilm')
 ic(data.head())
 #define samples
-group1 = data[data['condition']=='empty, fresh']
+#group1 = data[data['condition']=='empty, fresh']
 group2 = data[data['condition']=='empty, treated']
 group3 = data[data['condition']=='biofilm']
 
@@ -29,27 +29,30 @@ group3 = data[data['condition']=='biofilm']
 #ic(st.ttest_ind(group1['diffusion coeff'], group2['diffusion coeff']))#equal_var=True)
 #ic(st.ttest_ind(group1['diffusion coeff'], group2['diffusion coeff'], equal_var=True))
 
-Ttest12, pvalue12 = st.ttest_ind(group1['diffusion constants'], group2['diffusion constants'])#, equal_var=True)
-ic(Ttest12, pvalue12)
+#Ttest12, pvalue12 = st.ttest_ind(group1['diffusion constants'], group2['diffusion constants'])#, equal_var=True)
+#ic(Ttest12, pvalue12)
 
-Ttest13, pvalue13 = st.ttest_ind(group1['diffusion constants'], group3['diffusion constants'], equal_var=True)
-ic(Ttest13, pvalue13)
+#Ttest13, pvalue13 = st.ttest_ind(group1['diffusion constants'], group3['diffusion constants'], equal_var=True)
+#ic(Ttest13, pvalue13)
 
-Ttest23, pvalue23 = st.ttest_ind(group2['diffusion constants'], group3['diffusion constants'], equal_var=True)
+Ttest23, pvalue23 = st.ttest_ind(group2['diffusion constants'], group3['diffusion constants'], equal_var=False)
 ic(Ttest23, pvalue23)
 
 #data = data.reindex(["empty, fresh", "empty, treated", "biofilm"])
 plt.figure()
-format.formatLH(1.6,1.2)
+format.formatLH(1.6, 1.2, frame=True)
 data.boxplot(by='condition', grid=False)
-plt.xlabel('condition')
+plt.xlabel('')#condition')
 plt.ylabel('diffusion coefficient [$\mu$m$^2$/s]')
-barplot_annotate_brackets(0, 1, pvalue12, [1,2], [6.2,1])
-barplot_annotate_brackets(0, 1, pvalue13, [1,3], [7,1])
-barplot_annotate_brackets(0, 1, pvalue23, [2,3], [6.2,1])
-plt.xticks([1, 2, 3], ['empty\nfresh', 'empty\ntreated', 'bacteria'])
+#barplot_annotate_brackets(0, 1, pvalue12, [1,2], [6.2,1])
+#barplot_annotate_brackets(0, 1, pvalue13, [1,3], [7,1])
+barplot_annotate_brackets(0, 1, pvalue23, [1,2], [0.6, 0.6])
+#plt.xticks([1, 2, 3], ['empty\nfresh', 'empty\ntreated', 'bacteria'])
+plt.ylim(0,0.7)
+plt.xticks([1, 2], ['empty', 'bacteria'])
 plt.title('')
-plt.savefig('biofilm_frap.png', dpi=150)
+plt.subplots_adjust(bottom=0.15, wspace=0.05)
+plt.savefig('biofilm_frap.png', dpi=900)
 plt.show()
 
 

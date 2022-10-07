@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize
 import scipy.special
+from scipy import stats
 from icecream import ic
 import pandas as pd
 import h5py
@@ -352,6 +353,15 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float],
         The fitted values of the diffusion coefficient, d0
     """
 
+    def chi_squared(obs_freq, exp_freq):
+        count = len(obs_freq)
+        chi_sq = 0
+        for i in range(count):
+            x = (obs_freq[i] - exp_freq[i]) ** 2
+            x = x / exp_freq[i]
+            chi_sq += x
+        return chi_sq
+
     def soumpasis_model(d_0: int, time: list[float],
                         bessel_type: str = 'fast'):
         """
@@ -477,6 +487,14 @@ def fit_data(time: list[float], recovery: list[float], radii: list[float],
         if laser_profile == 'uniform':
             diff_const = radii[index] ** 2 / (4 * coeffs[0])
             plt.plot(time, soumpasis_model(coeffs[0], time), 'r-', label='fit')
+
+            # ic(chi_squared(experiment, soumpasis_model(coeffs[0], time)))
+            # #ic(stats.chisquare(experiment, soumpasis_model(coeffs[0], time)))
+            #
+            # # critical Chi-Square - percent point function
+            # p = 1
+            # DOF = len(experiment) - p - 1
+            # ic(stats.chi2.ppf(0.95, DOF))
 
         if laser_profile == 'gaussian':
             diff_const = coeffs[0]
