@@ -1,14 +1,15 @@
 """Basic czi image handling and information extraction."""
 import os
-
-import xml.etree.ElementTree as ET
 import pickle
-import czifile
-from icecream import ic
+import xml.etree.ElementTree as ET
+
 import cv2
-from skimage import img_as_ubyte
+import czifile
 import h5py
 import numpy as np
+from icecream import ic
+from skimage import img_as_ubyte
+
 import imgfileutils as imf
 
 
@@ -192,8 +193,8 @@ def disp_channels(add_metadata):
     """
 
     # channels are the same for both conditions
-    add_metadata_detectors = add_metadata[0]['Experiment']\
-        ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup']\
+    add_metadata_detectors = add_metadata[0]['Experiment'] \
+        ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup'] \
         ['TrackSetup'][0]['Detectors']['Detector']
 
     channel_names = []
@@ -293,14 +294,14 @@ def disp_scaling(img_add_metadata):
 
     scaling_x = []
     for image in img_add_metadata:
-        scale = image['Experiment']['ExperimentBlocks']\
+        scale = image['Experiment']['ExperimentBlocks'] \
             ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
         scaling_x.append(scale)
 
     return scaling_x
 
 
-def increase_brightness(img, value=30):
+def increase_brightness(img, value):
     """
     The increase_brightness function takes an image and increases
     the brightness of the image by a specified value. The function
@@ -398,9 +399,9 @@ def save_files(data: list[int], metadata: list[str], add_metadata: list[str]):
               f'{temp_filename_add_metadata} created successfully.')
 
 
-def load_data(path: str):
+def load_h5_data(path: str):
     """
-    The load_data function loads the data from a given path.
+    The load_h5_data function loads the data from a given path.
     It returns three lists: image_data, metadata and add_metadata.
     The image_data list contains all the images in numpy array format,
     the metadata list contains all the metadata in dictionary format
@@ -418,6 +419,8 @@ def load_data(path: str):
     metadata = []
     add_metadata = []
 
+    # ic(os.listdir(path))
+
     for file in os.listdir(path):
         if file.endswith(".h5"):
             print(f'loading {file} ...')
@@ -433,7 +436,7 @@ def load_data(path: str):
                 meta = pickle.load(metadata_pickle)
                 metadata.append(meta)
 
-        if file.endswith("_add_metadata.pkl"):
+        if file.endswith("_addmetadata.pkl"):
             with open(file, "rb") as add_metadata_pickle:
                 add_meta = pickle.load(add_metadata_pickle)
                 add_metadata.append(add_meta)
@@ -475,7 +478,8 @@ def test_all_functions(path):
 
     save_files(img_reduced, metadata, add_metadata)
 
-    load_data(path)
+    data, metadat, add_metadat = load_h5_data(path)
+
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 def barplot_annotate_brackets(num1, num2, data, center, height, yerr=None, dh=.05, barh=.05, fs=None, maxasterix=4):
     """
     The barplot_annotate_brackets function adds p-values to the barplot.
@@ -56,8 +57,8 @@ def barplot_annotate_brackets(num1, num2, data, center, height, yerr=None, dh=.0
     y = max(ly, ry) + dh
 
     barx = [lx, lx, rx, rx]
-    bary = [y, y+barh, y+barh, y]
-    mid = ((lx+rx)/2, y+barh)
+    bary = [y, y + barh, y + barh, y]
+    mid = ((lx + rx) / 2, y + barh)
 
     plt.plot(barx, bary, c='black')
 

@@ -1,8 +1,8 @@
+import sys
+
 from PyQt5.QtWidgets import *
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-
-import sys
 
 sys.path.insert(1, '/Users/lukasheuberger/switchdrive/08_code')
 import matplotlib.pyplot as plt
@@ -13,6 +13,7 @@ class GUIFunctions():
     """
     Class containing all the helper functions for the GUI
     """
+
     def __init__(self):
         pass
 
@@ -23,15 +24,15 @@ class GUIFunctions():
         main GUI window.
         """
 
-        #self.sourcefolder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
+        # self.sourcefolder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
         self.sourcefolder = '/Users/lukasheuberger/switchdrive/08_code/image_handling/testdata'
-        print (self.sourcefolder)
+        print(self.sourcefolder)
 
         self.FilePathLabel.setText(self.sourcefolder)
 
         self.OpenFolder()
         self.LoadImageData()
-        #self.PlotImage()
+        # self.PlotImage()
 
         # if self.fileNameData:
         #     print(self.fileNameData)
@@ -85,8 +86,8 @@ class GUIFunctions():
         self.img_data, self.metadata, self.add_metadata = imgfunc.load_image_data(self.files)
         self.img = imgfunc.extract_channels_xy(self.img_data)
         self.channel = self.img[0][1]
-        print (self.img[0].shape)
-        #mpl.image.imsave('name.png', self.channel)
+        print(self.img[0].shape)
+        # mpl.image.imsave('name.png', self.channel)
 
     def PlotImage(self):
         # fig, axs = plt.subplots(len(self.img), 3, figsize=(15, 15))
@@ -102,55 +103,55 @@ class GUIFunctions():
         plt.imshow(self.img[0][0], cmap='gray')
         self.PlotCanvas.draw()
 
+        # subfig_counter = 0
+        # filename_counter = 0
 
-        #subfig_counter = 0
-        #filename_counter = 0
+        # for image in self.img:
+        # print ('image:',img)
+        # print(self.metadata[filename_counter]['Filename'])
+        # for channel in range(0, len(image)):
+        # print ('channel:',channel)
 
-        #for image in self.img:
-            # print ('image:',img)
-            #print(self.metadata[filename_counter]['Filename'])
-            #for channel in range(0, len(image)):
-                # print ('channel:',channel)
+        # print(filename_counter)
+        # if filename_counter < 1: #so only top two images have channel names
+        #    axs[subfig_counter].title.set_text(channel_names[channel])
+        # if saving_on == True:
+        #    temp_filename = self.metadata[filename_counter]['Filename'].replace('.czi', '')
+        #    output_filename = ''.join(['analysis/', temp_filename, '_', str(channel + 1), '.png'])
+        #    # print(output_filename)
+        #    plt.imsave(output_filename, image[channel], cmap='gray')
 
-                # print(filename_counter)
-                # if filename_counter < 1: #so only top two images have channel names
-                #    axs[subfig_counter].title.set_text(channel_names[channel])
-                #if saving_on == True:
-                #    temp_filename = self.metadata[filename_counter]['Filename'].replace('.czi', '')
-                #    output_filename = ''.join(['analysis/', temp_filename, '_', str(channel + 1), '.png'])
-                #    # print(output_filename)
-                #    plt.imsave(output_filename, image[channel], cmap='gray')
+        # subfig_counter = subfig_counter + 1
+        # filename_counter = filename_counter + 1
 
-                #subfig_counter = subfig_counter + 1
-            #filename_counter = filename_counter + 1
 
 class qtGUI(QDialog, GUIFunctions):
     """
     Class containing the GUI for input of data and selection of analysis parameters
     """
-    def __init__(self, parent = None):
+
+    def __init__(self, parent=None):
         """
         Function that initializes the GUI window and creates a box containing all the widgets
         """
         super(qtGUI, self).__init__(parent)
         self.setWindowTitle("CZI Image Handler")
-        #self.showMaximized()
+        # self.showMaximized()
 
         self.createLoadBox()
         self.createPlotCanvas()
-        #self.createOptionBox()
+        # self.createOptionBox()
 
         topLayout = QHBoxLayout()
 
         mainLayout = QGridLayout()
 
         mainLayout.addLayout(topLayout, 0, 0)
-        mainLayout.addWidget(self.DataLoadBox,          1, 0, 1, 1)
-        mainLayout.addWidget(self.PlotCanvasBox,        1, 1, 4, 1)
-        #mainLayout.addWidget(self.OptionBox,            2, 0, 1, 1)
+        mainLayout.addWidget(self.DataLoadBox, 1, 0, 1, 1)
+        mainLayout.addWidget(self.PlotCanvasBox, 1, 1, 4, 1)
+        # mainLayout.addWidget(self.OptionBox,            2, 0, 1, 1)
 
         self.setLayout(mainLayout)
-
 
     def createLoadBox(self):
         """
@@ -159,18 +160,18 @@ class qtGUI(QDialog, GUIFunctions):
         self.DataLoadBox = QGroupBox("Data Selection")
         filePushButton = QPushButton("Load File for Analysis")
         filePushButton.clicked.connect(self.ChooseInputFolder)
-        #filePushButton.clicked.connect(self.PlotData)
-        #filePushButton.clicked.connect(self.labelsetter)
+        # filePushButton.clicked.connect(self.PlotData)
+        # filePushButton.clicked.connect(self.labelsetter)
 
         self.FilePathLabel = QLabel("no file selected")
         self.FilePathLabel.setWordWrap(True)
 
-        #self.FileShapeLabel = QLabel("")
+        # self.FileShapeLabel = QLabel("")
 
         layout = QVBoxLayout()
         layout.addWidget(filePushButton)
         layout.addWidget(self.FilePathLabel)
-        #layout.addWidget(self.FileShapeLabel)
+        # layout.addWidget(self.FileShapeLabel)
 
         self.DataLoadBox.setLayout(layout)
 
@@ -183,7 +184,7 @@ class qtGUI(QDialog, GUIFunctions):
         layout = QVBoxLayout()
         self.PlotCanvasBox.setLayout(layout)
 
-        self.figure = plt.figure(figsize=(3, 2), facecolor='None', edgecolor='None') #TODO make changeable
+        self.figure = plt.figure(figsize=(3, 2), facecolor='None', edgecolor='None')  # TODO make changeable
         self.PlotCanvas = FigureCanvas(self.figure)
         # set up canvas
         self.toolbarNavigation = NavigationToolbar(self.PlotCanvas, self)
@@ -200,8 +201,8 @@ class qtGUI(QDialog, GUIFunctions):
 
         PlotType_Label = QLabel("Channel:")
         self.PlotType = QComboBox()
-        self.PlotType.addItems([0,1])
-        #self.PlotType.currentIndexChanged.connect(self.PlotData)
+        self.PlotType.addItems([0, 1])
+        # self.PlotType.currentIndexChanged.connect(self.PlotData)
 
         layout = QGridLayout()
         layout.addWidget(PlotType_Label, 0, 0)
@@ -212,12 +213,11 @@ class qtGUI(QDialog, GUIFunctions):
     def createOutputBox(self):
         self.OutputBox = QGroupBox('Output')
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
     input_window = qtGUI()
     input_window.exec()
 
-
-#TODO optimize to make faster
+# TODO optimize to make faster

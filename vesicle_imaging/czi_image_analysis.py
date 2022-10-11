@@ -1,32 +1,33 @@
 """Plotting of czi images and image analysis."""
-import format
-import matplotlib.pyplot as plt
+import czi_image_handling as handler
+
+import os
+
 # from matplotlib_scalebar.scalebar import ScaleBar
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
-# import czi_image_handling as handler
-import os
 from icecream import ic
 
-def plot_images(image_czxy_data, img_add_metadata, img_metadata, channels, saving_on=True, scalebar=True):
+import format
 
+
+def plot_images(image_czxy_data, img_metadata, img_add_metadata, channels, saving=True, scalebar=True):
     format.formatLH()
     for img_index, img in enumerate(image_czxy_data):
-        #ic(img_index, img.shape)
+        ic(img_index, img.shape)
 
-        # print ('image:', img)
-        # print ('index:', index)
         # zstacks = (img_metadata[img_index][0]['Shape_czifile'][4])
 
         # image = img[0]
 
         scaling_x = handler.disp_scaling(img_add_metadata[img_index])
-        #ic(scaling_x)
+        # ic(scaling_x)
 
         print(img_metadata[img_index][0]['Filename'])
-        #print(img_metadata[img_index]['Filename'])
+        # print(img_metadata[img_index]['Filename'])
 
-        for channel_index, channel_img in enumerate(img): #enumerates channels
+        for channel_index, channel_img in enumerate(img):  # enumerates channels
             # ic(channel_index)
             # ic(channels[channel_index])
             # ic(channel_img.shape)
@@ -35,7 +36,7 @@ def plot_images(image_czxy_data, img_add_metadata, img_metadata, channels, savin
                 # ic(z_index) #plt.imshow(imx) #ic(inx, imx)
                 # ic(z_img.shape)
 
-                #temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
+                # temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
                 temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
                 title_filename = ''.join([temp_filename, '_', channels[channel_index], '_', str(z_index)])
                 output_filename = ''.join(['analysis/', title_filename, '.png'])
@@ -50,7 +51,7 @@ def plot_images(image_czxy_data, img_add_metadata, img_metadata, channels, savin
                 plt.axis('off')
                 plt.title(title_filename)
 
-                if saving_on:
+                if saving:
                     try:
                         new_folder_path = os.path.join(os.getcwd(), 'analysis')
                         os.mkdir(new_folder_path)
@@ -91,11 +92,13 @@ def plot_images(image_czxy_data, img_add_metadata, img_metadata, channels, savin
         #         plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
         #     # todo: add scalebar (always)
 
-def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel, detection_channel):
+
+def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
+                   detection_channel):
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     circles = []
 
-#<<<<<<< Updated upstream
+    # <<<<<<< Updated upstream
     # if circles.all() == [None]:
     print('the bigger param1, the fewer circles may be detected')
     print('the smaller param2 is, the more false circles may be detected')
@@ -103,31 +106,31 @@ def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, pa
     print('-------------------------')
     print(' ')
     for index, img in enumerate(img_xyz_data):
-        print ('image',  index + 1, 'is being processed...')
+        print('image', index + 1, 'is being processed...')
         ic(img.shape)
-        #img = img[0] # this is probably z level, but not entirely sure
+        # img = img[0] # this is probably z level, but not entirely sure
 
         image = img[detection_channel][0]
-        #image = img
+        # image = img
         ic(image.shape)
-#=======
+    # =======
     for index, img in enumerate(image_czxy_data):
-        print ('image',  index + 1, 'is being processed...')
+        print('image', index + 1, 'is being processed...')
         # img = img[0] # this is probably z level, but not entirely sure
 
         image = img[detection_channel]
-#>>>>>>> Stashed changes
+        # >>>>>>> Stashed changes
 
         if image.dtype == 'uint16':
             image = handler.convert8bit(image)
 
         output = img[display_channel][0].copy()  # output on vis image
-        #output = img[0].copy()  # output on vis image
+        # output = img[0].copy()  # output on vis image
         # output = [x + 30 for x in output]
         # output = map(lambda x: x+30, output)
         # output = list(np.asarray(output) + 30)
         # detect circles in the image
-        #image = image[0]
+        # image = image[0]
         ic(image.shape)
         circle = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT,  # detection on vis image
                                   dp=2,
@@ -154,7 +157,7 @@ def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, pa
 
         fig = plt.figure(figsize=(5, 5), frameon=False)
         fig.tight_layout(pad=0)
-        plt.imshow(output, cmap='gray')#, vmin=0, vmax=20)
+        plt.imshow(output, cmap='gray')  # , vmin=0, vmax=20)
         plt.axis('off')
 
         if hough_saving:
@@ -165,16 +168,15 @@ def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, pa
             temp_filename = img_metadata[index][0]['Filename'].replace('.czi', '')
             output_filename = ''.join(['analysis/HoughCircles/', temp_filename, '_houghcircles.png'])
             # print(output_filename)
-            plt.imsave(output_filename, output, cmap='gray')#, vmin=0, vmax=20)
+            plt.imsave(output_filename, output, cmap='gray')  # , vmin=0, vmax=20)
 
-        print ('______________________')
-    print(circles,' circles found')
-
-
+        print('______________________')
+    print(circles, ' circles found')
 
     return circles
 
-def measure_circles(image_xy_data, distance_from_border=20, excel_saving = True):
+
+def measure_circles(image_xy_data, distance_from_border=20, excel_saving=True):
     img_counter = 0
     average_per_img = []
 
@@ -198,7 +200,7 @@ def measure_circles(image_xy_data, distance_from_border=20, excel_saving = True)
 
                 for x in range(x_0 - measurement_radius, x_0 + measurement_radius):
                     for y in range(y_0 - measurement_radius, y_0 + measurement_radius):
-                        #todo this might be wrong, see czi_frap
+                        # todo this might be wrong, see czi_frap
                         dx = x - circle[0]
                         dy = y - circle[1]
                         distanceSquared = dx ** 2 + dy ** 2
@@ -206,7 +208,7 @@ def measure_circles(image_xy_data, distance_from_border=20, excel_saving = True)
                         if distanceSquared <= (measurement_radius ** 2):
                             # img_five[0][0] = first image, fluorescein channel
                             pixel_val = image[0][dy][dx]  # measurement on GFP image (= 0)
-                            #todo this should probably be y, x instead of dy, dx
+                            # todo this should probably be y, x instead of dy, dx
                             pixels_in_circle.append(pixel_val)
                 cv2.circle(output, (x_0, y_0), (measurement_radius), (255, 255, 255), 2)  # x,y,radius
             print('filename: ', filenames[index])
@@ -232,3 +234,22 @@ def measure_circles(image_xy_data, distance_from_border=20, excel_saving = True)
         # plt.imsave('output.png',output,cmap='hot')
 
         print(average_per_img)
+
+
+
+def test_all_functions(path):
+
+    from czi_image_handling import load_h5_data
+    os.chdir(path)
+
+    image_data, metadata, add_metadata = load_h5_data(path)
+    plot_images(image_data, metadata, add_metadata, channels = 1, saving = False)
+
+
+if __name__ == '__main__':
+    # path = input('path to data folder: ')
+    DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
+    # DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging
+    # DATA_PATH = './test_data/general'
+
+    test_all_functions(DATA_PATH)

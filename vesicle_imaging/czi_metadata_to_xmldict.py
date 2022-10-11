@@ -1,5 +1,7 @@
-from vesicle_imaging import czi_image_handling as handler
 from icecream import ic
+
+from vesicle_imaging import czi_image_handling as handler
+
 
 def write_metadata(path):
     # os.listdir(path)
@@ -9,16 +11,16 @@ def write_metadata(path):
     files, filenames = handler.get_files(path)
     filenames.sort(reverse=True)
     files.sort(reverse=True)
-    print (files)
+    print(files)
 
-    #print (images)
-    print ('number of images: ', len(files))
+    # print (images)
+    print('number of images: ', len(files))
 
-    print (files)
-    #filenames = files
-    #filenames.sort()
-    for i in range(0,len(files)):
-        filenames[i] = files[i].replace('.czi','')
+    print(files)
+    # filenames = files
+    # filenames.sort()
+    for i in range(0, len(files)):
+        filenames[i] = files[i].replace('.czi', '')
     ic(filenames)
 
     # image_data = []
@@ -38,10 +40,11 @@ def write_metadata(path):
 
     # handler.disp_basic_img_info(image_xy_data, image_metadata)
 
-    #handler.disp_all_metadata(image_metadata)
-    #channels = handler.disp_channels(image_add_metadata, type = 'MultiTrack')
+    # handler.disp_all_metadata(image_metadata)
+    # channels = handler.disp_channels(image_add_metadata, type = 'MultiTrack')
 
     handler.write_metadata_xml(path, files)
+
 
 if __name__ == "__main__":
     path = input('path to files to convert: ')

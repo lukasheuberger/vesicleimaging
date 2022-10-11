@@ -1,29 +1,30 @@
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import cv2
+
 
 def plot_zstack(image_stack: list, input_cmap: str):
     for index, image in enumerate(image_stack):
-        plt.figure(figsize = (5,5))
+        plt.figure(figsize=(5, 5))
         plt.axis('off')
         slice_title = ''.join(['slice ', str(index)])
         plt.title(slice_title)
-        plt.imshow(image, cmap = input_cmap)
+        plt.imshow(image, cmap=input_cmap)
+
 
 def detect_params(zstack, distance_from_border, zimage, dp, minDist, minRadius, maxRadius, param1top, param2top):
-
     # todo: include min and max radius in input from image data
     # distance_from_border = 50  # in px
 
-    #param1_range = range(param1top, 5, -5)
-    #param2_range = range(param2top, 150, 10)
+    # param1_range = range(param1top, 5, -5)
+    # param2_range = range(param2top, 150, 10)
 
     image = zstack[zimage]
     plt.figure(figsize=(10, 10))
     # plt.imshow(image, cmap = 'gray')
     output = image.copy()  # output on vis image
     # detect circles in the image
-    
+
     circle_detected = False
 
     for param2 in range(param2top, 150, -10):
@@ -53,9 +54,10 @@ def detect_params(zstack, distance_from_border, zimage, dp, minDist, minRadius, 
         cv2.rectangle(output, (x - 2, y - 2), (x + 2, y + 2), (255, 255, 255), -1)
 
     plt.imshow(output, cmap='hot')
-    print ('param1: ', param1)
-    print ('param2: ', param2)
+    print('param1: ', param1)
+    print('param2: ', param2)
     return param1, param2
+
 
 def detect_stack_circles(zstack, dp, minDist, minRadius, maxRadius, param1, param2):
     circles_zstack = []
@@ -72,7 +74,7 @@ def detect_stack_circles(zstack, dp, minDist, minRadius, maxRadius, param1, para
                                   param2=param2)
         if circle is None:
             for param1x in range(param1, 5, -2):
-                print (param1x)
+                print(param1x)
                 circle = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT,  # detection on vis image
                                           dp=dp,
                                           minDist=minDist,
@@ -81,11 +83,11 @@ def detect_stack_circles(zstack, dp, minDist, minRadius, maxRadius, param1, para
                                           param1=param1x,
                                           param2=param2)
                 if param1x == 7:
-                    print ('no circle found')
+                    print('no circle found')
                     break
-                    
+
                 if circle is not None:
-                    print ('circle with new param1 found')
+                    print('circle with new param1 found')
                     break
 
         if circle is not None:
@@ -105,7 +107,8 @@ def detect_stack_circles(zstack, dp, minDist, minRadius, maxRadius, param1, para
 
     return circles_zstack
 
-def measure_intensity_circle(circles, detection_image, distance_from_border ):
+
+def measure_intensity_circle(circles, detection_image, distance_from_border):
     # intensity in circles
     average_per_img = []
 

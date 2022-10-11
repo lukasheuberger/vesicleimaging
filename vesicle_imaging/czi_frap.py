@@ -9,17 +9,16 @@ and fits the FRAP curves to the corresponding diffusion models.
 """
 
 import os
-
 import pickle
+
 import cv2
+import h5py
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import scipy.optimize
 import scipy.special
-from scipy import stats
 from icecream import ic
-import pandas as pd
-import h5py
 
 from vesicle_imaging import czi_image_handling as handler
 
@@ -57,12 +56,12 @@ def load_data(path: str):
 
 
 def save_files(
-    data: list[int],
-    time: list[float],
-    scale: list[float],
-    filename: list[str],
-    frap: list[float],
-    metadata: list[str],
+        data: list[int],
+        time: list[float],
+        scale: list[float],
+        filename: list[str],
+        frap: list[float],
+        metadata: list[str],
 ):
     """
     The save_files function saves the data from the image_cxyz_data,
@@ -249,13 +248,13 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
 
 
 def measure_fluorescence(
-    image_data: list[int],
-    frap_positions: list[dict],
-    delta_t: list[float],
-    scalings: list[float],
-    image_metadata: list[dict],
-    frame_bleach: int,
-    normalize: bool = True,
+        image_data: list[int],
+        frap_positions: list[dict],
+        delta_t: list[float],
+        scalings: list[float],
+        image_metadata: list[dict],
+        frame_bleach: int,
+        normalize: bool = True,
 ):
     """
     The measure_fluorescence function takes a list of image data,
@@ -294,7 +293,7 @@ def measure_fluorescence(
 
         # convert radius to other units
         radius_m = float(frap_positions[index]["Radius"]) * scalings[index]  # in m
-        radius_um = radius_m * 10**6  # convert to um
+        radius_um = radius_m * 10 ** 6  # convert to um
         # ic(radius_px, radius_m, radius_um)
         radii.append(radius_um)  # store as um
 
@@ -308,8 +307,8 @@ def measure_fluorescence(
                     delta_x = x_coord - x_0
                     delta_y = y_coord - y_0
 
-                    distance_squared = delta_x**2 + delta_y**2
-                    if distance_squared <= (radius_px**2):
+                    distance_squared = delta_x ** 2 + delta_y ** 2
+                    if distance_squared <= (radius_px ** 2):
                         pixel_val = measurement_image[y_coord][x_coord]
                         pixels_in_circle.append(pixel_val)
 
@@ -373,11 +372,11 @@ def measure_fluorescence(
 
 
 def fit_data(
-    time: list[float],
-    recovery: list[float],
-    radii: list[float],
-    filenames: list[str],
-    laser_profile: str,
+        time: list[float],
+        recovery: list[float],
+        radii: list[float],
+        filenames: list[str],
+        laser_profile: str,
 ):
     """
     The fit_data function takes a list of time values,
@@ -435,22 +434,22 @@ def fit_data(
 
         if bessel_type == "fast":
             return np.exp(-2 * tau / time) * (
-                scipy.special.i0(2 * tau / time) + scipy.special.i1(2 * tau / time)
+                    scipy.special.i0(2 * tau / time) + scipy.special.i1(2 * tau / time)
             )
         if bessel_type == "traditional":
             return np.exp(-2 * tau / time) * (
-                scipy.special.iv(0, 2 * tau / time)
-                + scipy.special.iv(1, 2 * tau / time)
+                    scipy.special.iv(0, 2 * tau / time)
+                    + scipy.special.iv(1, 2 * tau / time)
             )
         raise ValueError('bessel_type must be either "fast" or "traditional"')
 
     def confocal_frap_model(
-        k: float,
-        d_0: int,
-        time_array: list[float],
-        radius: float,
-        mobile_fract: int,
-        f_0: float,
+            k: float,
+            d_0: int,
+            time_array: list[float],
+            radius: float,
+            mobile_fract: int,
+            f_0: float,
     ):
         """
         The confocal_frap_model function computes the FRAP curve
@@ -480,18 +479,18 @@ def fit_data(
         # ic([(1-(k/(2+(8*d0*t)/(r**2))))*
         #   mobile_fraction+(1-mobile_fraction)*F0 for t in time])
         return [
-            (1 - (k / (2 + (8 * d_0 * timepoint) / (radius**2)))) * mobile_fract
+            (1 - (k / (2 + (8 * d_0 * timepoint) / (radius ** 2)))) * mobile_fract
             + (1 - mobile_fract) * f_0
             for timepoint in time_array
         ]
 
     def residuals(
-        guess: list[int],
-        norm_intensity: list[float],
-        time_array: list[float],
-        radius: float,
-        init_fluo: float,
-        k: float,
+            guess: list[int],
+            norm_intensity: list[float],
+            time_array: list[float],
+            radius: float,
+            init_fluo: float,
+            k: float,
     ):
         """
         The residuals function computes the difference between the measured
@@ -595,7 +594,7 @@ def fit_data(
 
 
 def frap_analysis(
-    path: str, bleach_frame: int = 5, recovery_end: int = 100, channel_bleach: int = 0
+        path: str, bleach_frame: int = 5, recovery_end: int = 100, channel_bleach: int = 0
 ):
     """
     The frap_analysis function takes a path to a folder of images

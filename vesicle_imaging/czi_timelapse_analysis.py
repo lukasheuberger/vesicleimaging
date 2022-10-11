@@ -1,11 +1,14 @@
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import cv2
-from skimage import img_as_ubyte
 from icecream import ic
+from skimage import img_as_ubyte
+
 import czi_image_handling as handler
 
-def detect_params(detect_img, distance_from_border = 5, timepoint = 5, dp = 2, minDist = 10, minRadius = 5, maxRadius = 50, param1top = 50, param2top = 300):
+
+def detect_params(detect_img, distance_from_border=5, timepoint=5, dp=2, minDist=10, minRadius=5, maxRadius=50,
+                  param1top=50, param2top=300):
     # todo: include min and max radius in input from image data
     # distance_from_border = 50  # in px
     # param1_range = range(param1top, 5, -5)
@@ -15,7 +18,7 @@ def detect_params(detect_img, distance_from_border = 5, timepoint = 5, dp = 2, m
     ic(image)
     plt.figure(figsize=(5, 5))
     plt.axis('off')
-    plt.imshow(image, cmap = 'gray')
+    plt.imshow(image, cmap='gray')
     output = image.copy()  # output on vis image
     # detect circles in the image
 
@@ -25,9 +28,9 @@ def detect_params(detect_img, distance_from_border = 5, timepoint = 5, dp = 2, m
         image = handler.convert8bit(image)
 
     for param2 in range(param2top, 150, -5):
-        print (param2)
+        print(param2)
         for param1 in range(param1top, 1, -2):
-            print (param1)
+            print(param1)
             circle = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT,
                                       dp=dp,
                                       minDist=minDist,
@@ -62,7 +65,8 @@ def detect_params(detect_img, distance_from_border = 5, timepoint = 5, dp = 2, m
     return param1, param2
 
 
-def detect_timelapse_circles(detect_img, measure_img, dp, minDist, minRadius, maxRadius, param1, param2, distance_from_border = 5):
+def detect_timelapse_circles(detect_img, measure_img, dp, minDist, minRadius, maxRadius, param1, param2,
+                             distance_from_border=5):
     circles_frame = []
     circle_frame_average = []
     circle_frame_stdev = []
@@ -112,7 +116,7 @@ def detect_timelapse_circles(detect_img, measure_img, dp, minDist, minRadius, ma
         if circle is not None:
             circle = np.round(circle[0, :]).astype("int")
             # loop over the (x, y) coordinates and radius of the circles
-            #print('circles: ', circle)
+            # print('circles: ', circle)
 
             pixels_in_circle = []
             # loop through all circles and measure intensity inside
@@ -139,12 +143,12 @@ def detect_timelapse_circles(detect_img, measure_img, dp, minDist, minRadius, ma
         else:
             print('circle is none')
 
-        #ic(pixels_in_circle)
+        # ic(pixels_in_circle)
         print('average: ', np.mean(pixels_in_circle))
         circle_frame_average.append(np.mean(pixels_in_circle))
         circle_frame_stdev.append(np.std(pixels_in_circle))
 
-        circle_frame_median.append(np.median(pixels_in_circle))#, axis=0))
+        circle_frame_median.append(np.median(pixels_in_circle))  # , axis=0))
         circle_frame_lower.append(np.percentile(pixels_in_circle, 25, axis=0))
         circle_frame_upper.append(np.percentile(pixels_in_circle, 75, axis=0))
 
@@ -154,6 +158,7 @@ def detect_timelapse_circles(detect_img, measure_img, dp, minDist, minRadius, ma
         plt.imshow(output, cmap='hot')
 
     return circle_frame_average, circle_frame_stdev, circle_frame_median, circle_frame_lower, circle_frame_upper
+
 
 if __name__ == '__main__':
     print('yay')

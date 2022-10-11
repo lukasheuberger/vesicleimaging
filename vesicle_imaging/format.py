@@ -1,4 +1,4 @@
-def formatLH(figsizex = 2, figsizey = 2, frame = False):
+def formatLH(figsizex=2, figsizey=2, frame=False):
     """
       :param: figsizex, integer specifying how many figures should be next to each other in x-direction
       :param: figsizey, integer specifying how many figures should be next to each other in y-direction
