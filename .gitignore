@@ -132,5 +132,4 @@ example_notebook.ipynb
 example_notebook.ipynb
 *.czi
 *.pkl
-*.h5
 *.xlsx
