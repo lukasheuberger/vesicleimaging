@@ -149,24 +149,27 @@ def extract_channels(img_data: list[int], img_type: str,
     """
 
     # shape: B, V, C, T, Z, Y, X'
-
+    # TODO FIX ME
     extracted_channels = []
     for image in img_data:
         ic(image.shape)
-        if img_type == 'zstack':
-            extracted_channels.append(image[0, 0, :, 0, :, :, :])
-        elif img_type == 'zstack':
-            extracted_channels.append(image[0, 0, :, 0, :, :, :])
-        elif img_type == 'image':
-            extracted_channels.append(image[0, 0, 0, 0, :, :, :])
-        elif img_type == 'timelapse':
-            # check if timelapse needs to be reduced to certain channels
-            if channels is not None:
-                extracted_channels.append(image[0, 0, channels, :, 0, :, :])
-            else:
-                extracted_channels.append(image[0, 0, :, :, 0, :, :])
-        else:
-            raise ValueError(f'unknown image type: {img_type}')
+
+        extracted_channels.append(image[0, 0, :, :, :, :, :])
+
+        # if img_type == 'zstack':
+        #     extracted_channels.append(image[0, 0, :, 0, :, :, :])
+        # elif img_type == 'zstack':
+        #     extracted_channels.append(image[0, 0, :, 0, :, :, :])
+        # elif img_type == 'image':
+        #     extracted_channels.append(image[0, 0, 0, 0, :, :, :])
+        # elif img_type == 'timelapse':
+        #     # check if timelapse needs to be reduced to certain channels
+        #     if channels is not None:
+        #         extracted_channels.append(image[0, 0, channels, :, 0, :, :])
+        #     else:
+        #         extracted_channels.append(image[0, 0, :, :, 0, :, :])
+        # else:
+        #     raise ValueError(f'unknown image type: {img_type}')
 
     return extracted_channels
 
@@ -418,11 +421,13 @@ def load_h5_data(path: str):
     image_data = []
     metadata = []
     add_metadata = []
+    filenames = []
 
-    # ic(os.listdir(path))
+    ic(os.listdir(path))
 
     for file in os.listdir(path):
         if file.endswith(".h5"):
+            filename = file.split('.')[0]
             print(f'loading {file} ...')
 
             h5file = h5py.File(file, 'r')
@@ -431,15 +436,21 @@ def load_h5_data(path: str):
             image_data.append(data)
             h5file.close()
 
-        if file.endswith("_metadata.pkl"):
-            with open(file, "rb") as metadata_pickle:
-                meta = pickle.load(metadata_pickle)
-                metadata.append(meta)
+            filenames.append(filename)
 
-        if file.endswith("_addmetadata.pkl"):
-            with open(file, "rb") as add_metadata_pickle:
-                add_meta = pickle.load(add_metadata_pickle)
-                add_metadata.append(add_meta)
+    for filename in filenames:
+        # if file.endswith("_metadata.pkl"):
+        filename_metadata = ''.join([filename, '_metadata.pkl'])
+        with open(filename_metadata, "rb") as metadata_pickle:
+            meta = pickle.load(metadata_pickle)
+            metadata.append(meta)
+
+        filename_add_metadata = ''.join([filename, '_addmetadata.pkl'])
+        # if file.endswith("_addmetadata.pkl"):
+        with open(filename_add_metadata, "rb") as add_metadata_pickle:
+            add_meta = pickle.load(add_metadata_pickle)
+            add_metadata.append(add_meta)
+
 
     return image_data, metadata, add_metadata
 
@@ -467,24 +478,23 @@ def test_all_functions(path):
 
     # ic(img_data[0].shape)
     disp_basic_img_info(img_data, metadata)
-    img_reduced = extract_channels(img_data, img_type='timelapse')
-    ic(img_reduced[0].shape)
+    img_reduced = extract_channels(img_data, img_type='zstack')
 
-    # disp_all_metadata(metadata)
+    disp_all_metadata(metadata)
 
     disp_channels(add_metadata)
 
-    disp_scaling(add_metadata)
+    ic(disp_scaling(add_metadata))
 
     save_files(img_reduced, metadata, add_metadata)
 
-    data, metadat, add_metadat = load_h5_data(path)
+    load_h5_data(path)
 
 
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
-    DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
-    # DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging
+    #DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
+    DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
     # /test_data/general'
     test_all_functions(DATA_PATH)

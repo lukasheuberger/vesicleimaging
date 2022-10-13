@@ -12,44 +12,32 @@ from icecream import ic
 import format
 
 
-def plot_images(image_czxy_data, img_metadata, img_add_metadata, channels, saving=True, scalebar=True):
-    format.formatLH()
-    for img_index, img in enumerate(image_czxy_data):
-        ic(img_index, img.shape)
+def plot_images(image_data, img_metadata, img_add_metadata, channels, saving=True, scalebar=True):
+    # todo check if in right form or reduce via handler
+    # todo make channel name automatic
 
-        # zstacks = (img_metadata[img_index][0]['Shape_czifile'][4])
+    # dimention order: C, T, Z, Y, X
 
-        # image = img[0]
+    for channel_index, channel_img in enumerate(image_data):
+        # ic(channel_index, channel_img.shape)
 
-        scaling_x = handler.disp_scaling(img_add_metadata[img_index])
-        # ic(scaling_x)
+        for timepoint_index, timepoint in enumerate(channel_img):
+            # ic(timepoint_index, timepoint.shape)
 
-        print(img_metadata[img_index][0]['Filename'])
-        # print(img_metadata[img_index]['Filename'])
+            for zstack_index, zstack in enumerate(timepoint):
+                # ic(zstack_index, zstack.shape)
 
-        for channel_index, channel_img in enumerate(img):  # enumerates channels
-            # ic(channel_index)
-            # ic(channels[channel_index])
-            # ic(channel_img.shape)
-
-            for z_index, z_img in enumerate(channel_img):
-                # ic(z_index) #plt.imshow(imx) #ic(inx, imx)
-                # ic(z_img.shape)
-
-                # temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
-                temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
-                title_filename = ''.join([temp_filename, '_', channels[channel_index], '_', str(z_index)])
+                temp_filename = img_metadata['Filename'].replace('.czi', '')
+                title_filename = ''.join([temp_filename, '_', channels[channel_index], '_t', str(timepoint_index), '_z', str(zstack_index)])
                 output_filename = ''.join(['analysis/', title_filename, '.png'])
 
+
+                format.formatLH()
                 fig = plt.figure(figsize=(5, 5), frameon=False)
                 fig.tight_layout(pad=0)
-                plt.imshow(z_img, cmap='gray')
-
-                scalebar = ScaleBar(dx=scaling_x[0], location='lower right', fixed_value=30,
-                                    fixed_units='µm', frameon=False, color='w')  # 1 pixel = scale [m]
-                plt.gca().add_artist(scalebar)
-                plt.axis('off')
+                plt.imshow(zstack, cmap='gray')
                 plt.title(title_filename)
+                plt.axis('off')
 
                 if saving:
                     try:
@@ -60,6 +48,24 @@ def plot_images(image_czxy_data, img_metadata, img_add_metadata, channels, savin
                         pass
                     plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
                     print('image saved: ', output_filename)
+
+                plt.show()
+
+
+        #scaling_x = handler.disp_scaling([img_add_metadata])
+
+        #ic(img_metadata['Filename'])
+        # print(img_metadata[img_index]['Filename'])
+
+            # temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
+
+
+
+            #scalebar = scalebar(dx=scaling_x[0], location='lower right', fixed_value=50,
+            #                    fixed_units='µm', frameon=False, color='w')  # 1 pixel = scale [m]
+            #plt.gca().add_artist(scalebar)
+            #plt.axis('off')
+
 
         # for channel in range(0, len(image)):
         #
@@ -239,17 +245,26 @@ def measure_circles(image_xy_data, distance_from_border=20, excel_saving=True):
 
 def test_all_functions(path):
 
-    from czi_image_handling import load_h5_data
+    from czi_image_handling import load_h5_data, disp_basic_img_info
     os.chdir(path)
+    ic(path)
 
     image_data, metadata, add_metadata = load_h5_data(path)
-    plot_images(image_data, metadata, add_metadata, channels = 1, saving = False)
+    disp_basic_img_info(image_data, metadata)
+    test_index = 2
+
+    # C, T, Z, Y, X
+    # ic| image_data[0].shape: (2, 1, 1, 1024, 1024)
+    # ic| image_data[1].shape: (2, 1, 52, 1024, 1024)
+    # ic| image_data[2].shape: (3, 69, 1, 1024, 1024)
+
+    plot_images(image_data[test_index], metadata[test_index], add_metadata[test_index], channels = ['a','b','c'], saving = False)
 
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
-    DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
-    # DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging
+    # DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
+    DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
     # DATA_PATH = './test_data/general'
 
     test_all_functions(DATA_PATH)

@@ -133,3 +133,4 @@ example_notebook.ipynb
 *.czi
 *.pkl
 *.xlsx
+*.h5
