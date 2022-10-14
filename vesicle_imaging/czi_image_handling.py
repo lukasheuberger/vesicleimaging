@@ -173,7 +173,7 @@ def extract_channels(img_data: list[int]):#, img_type: str, channels: list[int] 
     return extracted_channels
 
 
-def disp_channels(add_metadata):
+def get_channels(add_metadata):
     """
     The disp_channels function displays the channels of each image in a list.
     The function takes as input add_metadata, which is a list of dictionaries
@@ -195,9 +195,14 @@ def disp_channels(add_metadata):
     """
 
     # channels are the same for both conditions
-    add_metadata_detectors = add_metadata[0]['Experiment'] \
-        ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup'] \
-        ['TrackSetup'][0]['Detectors']['Detector']
+    try:
+        add_metadata_detectors = add_metadata[0]['Experiment'] \
+            ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup'] \
+            ['TrackSetup'][0]['Detectors']['Detector']
+    except KeyError:
+        add_metadata_detectors = add_metadata[0]['Experiment'] \
+            ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup'] \
+            ['TrackSetup']['Detectors']['Detector']
 
     channel_names = []
     dyes = []
@@ -296,8 +301,12 @@ def disp_scaling(img_add_metadata):
 
     scaling_x = []
     for image in img_add_metadata:
-        scale = image[0]['Experiment']['ExperimentBlocks'] \
-            ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX'] #todo test if this works for all cases
+        try:
+            scale = image['Experiment']['ExperimentBlocks'] \
+            ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
+        except TypeError as e:
+            scale = image[0]['Experiment']['ExperimentBlocks'] \
+                ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
         scaling_x.append(scale)
 
     return scaling_x
@@ -477,11 +486,11 @@ def test_all_functions(path):
 
     # ic(img_data[0].shape)
     disp_basic_img_info(img_data, metadata)
-    img_reduced = extract_channels(img_data, img_type='zstack')
+    img_reduced = extract_channels(img_data)
 
     disp_all_metadata(metadata)
 
-    disp_channels(add_metadata)
+    ic(get_channels(add_metadata))
 
     ic(disp_scaling(add_metadata))
 

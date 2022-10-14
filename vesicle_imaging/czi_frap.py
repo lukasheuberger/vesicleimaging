@@ -196,7 +196,7 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
             delta_ts.append(
                 image_add_metadata[0][0]["DisplaySetting"]["Information"]["Image"][
                     "Dimensions"
-                ]["Channels"]["Channel"]#[0]
+                ]["Channels"]["Channel"][0]
                 ["LaserScanInfo"]["FrameTime"]
             )
             scalings.append(float(handler.disp_scaling(image_add_metadata)[0]))
@@ -651,9 +651,11 @@ def frap_analysis(
 
 if __name__ == "__main__":
     # path = input('path to data folder: ')
-    DATA_PATH = "/Volumes/RTA-A-SCICORE-CHE-PALIVAN$/FG/Palivan/heuber0000/experimental_data/LH22-53/F"
+    DATA_PATH = "/Volumes/RTA-A-SCICORE-CHE-PALIVAN$/FG/Palivan/heuber0000/experimental_data/LH22-51/biofilm1"
+    DATA_PATH = "/Volumes/heuber0000/experimental_data/LH22-51/biofilm1"
 
     BLEACH_FRAME = 5 # frame just after bleaching
     RECOVERY_END_FRAME = 100
     BLEACH_CHANNEL = 0
     frap_analysis(DATA_PATH, BLEACH_FRAME, RECOVERY_END_FRAME, BLEACH_CHANNEL)
+# TODO make local copy of h5 file for better performance and copy at the end to location, delete local copy then

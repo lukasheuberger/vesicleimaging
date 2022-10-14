@@ -3,20 +3,30 @@ import czi_image_handling as handler
 
 import os
 
-# from matplotlib_scalebar.scalebar import ScaleBar
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from icecream import ic
+from matplotlib_scalebar.scalebar import ScaleBar
 
 import format
 
 
-def plot_images(image_data, img_metadata, img_add_metadata, channels, saving=True, scalebar=True):
+def plot_images(image_data, img_metadata, img_add_metadata, saving=True, scalebar=True, scalebar_value=50):
     # todo check if in right form or reduce via handler
     # todo make channel name automatic
 
-    # dimention order: C, T, Z, Y, X
+    # dimension order: C, T, Z, Y, X
+
+    channels = handler.get_channels([img_add_metadata])
+    channel_names = []
+    for channel in channels[2]:
+        if channel == None:
+            channel_names.append('T-PMT')
+        else:
+            channel_names.append(channel.replace(" ", ""))
+
+    scaling_x = handler.disp_scaling([img_add_metadata])
 
     for channel_index, channel_img in enumerate(image_data):
         # ic(channel_index, channel_img.shape)
@@ -28,7 +38,7 @@ def plot_images(image_data, img_metadata, img_add_metadata, channels, saving=Tru
                 # ic(zstack_index, zstack.shape)
 
                 temp_filename = img_metadata['Filename'].replace('.czi', '')
-                title_filename = ''.join([temp_filename, '_', channels[channel_index], '_t', str(timepoint_index), '_z', str(zstack_index)])
+                title_filename = ''.join([temp_filename, '_', channel_names[channel_index], '_t', str(timepoint_index), '_z', str(zstack_index)])
                 output_filename = ''.join(['analysis/', title_filename, '.png'])
 
 
@@ -38,6 +48,8 @@ def plot_images(image_data, img_metadata, img_add_metadata, channels, saving=Tru
                 plt.imshow(zstack, cmap='gray')
                 plt.title(title_filename)
                 plt.axis('off')
+                scalebar = ScaleBar(dx=scaling_x[0], location='lower right', fixed_value=scalebar_value, fixed_units='µm', frameon=False, color='w')  # 1 pixel = scale [m]
+                plt.gca().add_artist(scalebar)
 
                 if saving:
                     try:
@@ -50,53 +62,6 @@ def plot_images(image_data, img_metadata, img_add_metadata, channels, saving=Tru
                     print('image saved: ', output_filename)
 
                 plt.show()
-
-
-        #scaling_x = handler.disp_scaling([img_add_metadata])
-
-        #ic(img_metadata['Filename'])
-        # print(img_metadata[img_index]['Filename'])
-
-            # temp_filename = img_metadata[img_index]['Filename'].replace('.czi', '')
-
-
-
-            #scalebar = scalebar(dx=scaling_x[0], location='lower right', fixed_value=50,
-            #                    fixed_units='µm', frameon=False, color='w')  # 1 pixel = scale [m]
-            #plt.gca().add_artist(scalebar)
-            #plt.axis('off')
-
-
-        # for channel in range(0, len(image)):
-        #
-        #     for slice in range(0, zstacks):
-        #         #pass
-        #         ic(image[slice])
-        #
-        #     fig = plt.figure(figsize=(5, 5), frameon=False)
-        #     fig.tight_layout(pad=0)
-        #     # subfig_counter = index*3 + channel
-        #     plt.imshow(image[channel], cmap='gray')
-        #     plt.axis('off')
-        #     plt.title(title_filename)
-        #
-        #     # print ('channel:',channel)
-        #     temp_filename = img_metadata[img_index][0]['Filename'].replace('.czi', '')
-        #     title_filename = ''.join([temp_filename, '_', channels[channel]])
-        #     output_filename = ''.join(['analysis/', title_filename, '.png'])
-        #     # print ('index + channel', index*3 + channel + 1)
-        #
-        #     # print(filename_counter)
-        #     # if filename_counter < 1: #so only top two images have channel names
-        #     #    axs[subfig_counter].title.set_text(channel_names[channel])
-        #     # scalebar = ScaleBar(dx=scaling_x[index], location='lower right', fixed_value=30,
-        #     #                    fixed_units='µm', frameon = False, color = 'w')  # 1 pixel = scale [m]
-        #     # plt.gca().add_artist(scalebar)
-        #
-        #     if saving_on:
-        #         # print(output_filename)
-        #         plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
-        #     # todo: add scalebar (always)
 
 
 def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
@@ -251,16 +216,17 @@ def test_all_functions(path):
 
     image_data, metadata, add_metadata = load_h5_data(path)
     disp_basic_img_info(image_data, metadata)
-    test_index = 2
+    test_index = 0
 
     # C, T, Z, Y, X
     # ic| image_data[0].shape: (2, 1, 1, 1024, 1024)
     # ic| image_data[1].shape: (2, 1, 52, 1024, 1024)
     # ic| image_data[2].shape: (3, 69, 1, 1024, 1024)
 
-    plot_images(image_data[test_index], metadata[test_index], add_metadata[test_index], channels = ['a','b','c'], saving = False)
-
-
+    plot_images(image_data[test_index], metadata[test_index], add_metadata[test_index], saving = True)
+    detected_circles = hough_circles(image_data[test_index], metadata[test_index], add_metadata[test_index], )
+image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
+                   detection_channel
 if __name__ == '__main__':
     # path = input('path to data folder: ')
     # DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
