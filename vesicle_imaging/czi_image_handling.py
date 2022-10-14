@@ -129,8 +129,7 @@ def load_image_data(files: list, write_metadata: bool = False):
     return all_img_data, all_metadata, all_add_metadata
 
 
-def extract_channels(img_data: list[int], img_type: str,
-                     channels: list[int] = None):
+def extract_channels(img_data: list[int]):#, img_type: str, channels: list[int] = None):
     """
     The extract_channels function extracts the channels from a list of images.
     The function takes in a list of images and an image type
@@ -297,8 +296,8 @@ def disp_scaling(img_add_metadata):
 
     scaling_x = []
     for image in img_add_metadata:
-        scale = image['Experiment']['ExperimentBlocks'] \
-            ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
+        scale = image[0]['Experiment']['ExperimentBlocks'] \
+            ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX'] #todo test if this works for all cases
         scaling_x.append(scale)
 
     return scaling_x

@@ -152,9 +152,7 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
             image_data.append(data)
             image_metadata.append(metadata)
             image_add_metadata.append(add_metadata)
-            img_data = handler.extract_channels(
-                data, type="timelapse", channels=[channel_bleach]
-            )[0]
+            img_data = handler.extract_channels(data)[0]
 
             # cut all to time of interest for hdf5 export
             # ic(img_data[0][bleach:recovery_frame].shape)
@@ -176,7 +174,7 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
         scalings = []
         filenames = []
 
-        for index, img in enumerate(image_txy_data):
+        for index, img in enumerate(image_data):
             # # save frame after bleaching
             # plt.figure()
             # plt.imshow(img[0][:,bleach_frame,:,:][bleach_channel])
@@ -198,7 +196,8 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
             delta_ts.append(
                 image_add_metadata[0][0]["DisplaySetting"]["Information"]["Image"][
                     "Dimensions"
-                ]["Channels"]["Channel"][0]["LaserScanInfo"]["FrameTime"]
+                ]["Channels"]["Channel"]#[0]
+                ["LaserScanInfo"]["FrameTime"]
             )
             scalings.append(float(handler.disp_scaling(image_add_metadata)[0]))
 
@@ -206,7 +205,8 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
 
             # save frame after bleaching with ROI
             plt.figure()
-            output = img[bleach, :, :].copy()
+            output = img[0][0, 0, 0, bleach, 0, :, :].copy()
+
             cv2.circle(
                 output,
                 (
@@ -309,7 +309,7 @@ def measure_fluorescence(
 
                     distance_squared = delta_x ** 2 + delta_y ** 2
                     if distance_squared <= (radius_px ** 2):
-                        pixel_val = measurement_image[y_coord][x_coord]
+                        pixel_val = measurement_image[0][y_coord][x_coord]
                         pixels_in_circle.append(pixel_val)
 
             # print('filename: ', filenames[index])
@@ -651,9 +651,9 @@ def frap_analysis(
 
 if __name__ == "__main__":
     # path = input('path to data folder: ')
-    DATA_PATH = "/Users/heuberger/code/vesicle-imaging/test_data/frap"
+    DATA_PATH = "/Volumes/RTA-A-SCICORE-CHE-PALIVAN$/FG/Palivan/heuber0000/experimental_data/LH22-53/F"
 
-    BLEACH_FRAME = 5  # frame just after bleaching
+    BLEACH_FRAME = 5 # frame just after bleaching
     RECOVERY_END_FRAME = 100
     BLEACH_CHANNEL = 0
     frap_analysis(DATA_PATH, BLEACH_FRAME, RECOVERY_END_FRAME, BLEACH_CHANNEL)
