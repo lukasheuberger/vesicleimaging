@@ -37,7 +37,7 @@ def plot_images(image_data, img_metadata, img_add_metadata, saving=True, scaleba
             for zstack_index, zstack in enumerate(timepoint):
                 # ic(zstack_index, zstack.shape)
 
-                temp_filename = img_metadata['Filename'].replace('.czi', '')
+                temp_filename = img_metadata[0]['Filename'].replace('.czi', '') # TODO remove this 0
                 title_filename = ''.join([temp_filename, '_', channel_names[channel_index], '_t', str(timepoint_index), '_z', str(zstack_index)])
                 output_filename = ''.join(['analysis/', title_filename, '.png'])
 
@@ -66,6 +66,7 @@ def plot_images(image_data, img_metadata, img_add_metadata, saving=True, scaleba
 
 def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
                    detection_channel):
+    # this is all a mess and needs  to be fixed
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     circles = []
 
@@ -76,7 +77,7 @@ def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, pa
     print('circles, corresponding to the larger accumulator values, will be returned first')
     print('-------------------------')
     print(' ')
-    for index, img in enumerate(img_xyz_data):
+    for index, img in enumerate(image_czxy_data):
         print('image', index + 1, 'is being processed...')
         ic(img.shape)
         # img = img[0] # this is probably z level, but not entirely sure
@@ -95,17 +96,17 @@ def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, pa
         if image.dtype == 'uint16':
             image = handler.convert8bit(image)
 
-        output = img[display_channel][0].copy()  # output on vis image
+        output = img[display_channel][0][0].copy()  # output on vis image
         # output = img[0].copy()  # output on vis image
         # output = [x + 30 for x in output]
         # output = map(lambda x: x+30, output)
         # output = list(np.asarray(output) + 30)
         # detect circles in the image
-        # image = image[0]
+        image = image[0][0]
         ic(image.shape)
         circle = cv2.HoughCircles(image, cv2.HOUGH_GRADIENT,  # detection on vis image
                                   dp=2,
-                                  minDist=minmax[1] + 110,
+                                  minDist=minmax[1],# + 110,
                                   minRadius=minmax[0],
                                   maxRadius=minmax[1],
                                   param1=param1_array[index],
@@ -212,6 +213,7 @@ def test_all_functions(path):
 
     from czi_image_handling import load_h5_data, disp_basic_img_info
     os.chdir(path)
+    path = os.getcwd()
     ic(path)
 
     image_data, metadata, add_metadata = load_h5_data(path)
@@ -225,12 +227,13 @@ def test_all_functions(path):
 
     plot_images(image_data[test_index], metadata[test_index], add_metadata[test_index], saving = True)
     detected_circles = hough_circles(image_data[test_index], metadata[test_index], add_metadata[test_index], )
-image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
-                   detection_channel
+    #image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
+    #detection_channel
+
 if __name__ == '__main__':
     # path = input('path to data folder: ')
     # DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
-    DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
-    # DATA_PATH = './test_data/general'
+    # DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
+    DATA_PATH = '../test_data/general'
 
     test_all_functions(DATA_PATH)

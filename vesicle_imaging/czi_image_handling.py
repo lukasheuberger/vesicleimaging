@@ -65,12 +65,18 @@ def write_metadata_xml(path: str, files: list):
     Returns:
         The path to the xml file and the filename of that xml
     """
+
+    # TODO: doesn't work if files and path are not the same
+    #  (-> files in subfolders)
+
+    metadata_path = ''.join([path, '/metadata'])
+    ic(metadata_path)
+
     try:
-        metadata_path = ''.join([path, '/metadata'])
-        ic(metadata_path)
         os.mkdir(metadata_path)
+        print(f'new folder created: {metadata_path}')
     except FileExistsError:
-        pass
+        print(f'folder already exists: {metadata_path}')
 
     for file in files:
         ic(file)
@@ -129,32 +135,29 @@ def load_image_data(files: list, write_metadata: bool = False):
     return all_img_data, all_metadata, all_add_metadata
 
 
-def extract_channels(img_data: list[int]):#, img_type: str, channels: list[int] = None):
+def extract_channels(img_data: list[int]):
     """
-    The extract_channels function extracts the channels from a list of images.
-    The function takes in a list of images and an image type
-    (zstack, timelapse, or image). If the image type is zstack,
-    it extracts only one channel from each z-slice. If the
-    image type is timelapse or image, it extracts only one
-    channel from each timepoint/image.
+    The extract_channels function extracts the first channel
+     of each image in a list of images.
 
     Args:
-        img_data:list[int]: list of images to the extract_channels function
-        img_type:str:  dimension of the image used for stacking
-        channels=None: channels to extract from the timelapse images
+        img_data:list[int]: Store the image data
 
     Returns:
-        A list of images with the specified channels
+        A list of images that have been extracted from the original image
     """
 
     # shape: B, V, C, T, Z, Y, X'
     # TODO FIX ME
     extracted_channels = []
     for image in img_data:
-        ic(image.shape)
 
-        extracted_channels.append(image[0, 0, :, :, :, :, :])
-
+        try:
+            ic(image.shape)
+            extracted_channels.append(image[0, 0, :, :, :, :, :])
+        except AttributeError:
+            ic(image[0].shape)
+            extracted_channels.append(image[0][0, 0, :, :, :, :, :])
         # if img_type == 'zstack':
         #     extracted_channels.append(image[0, 0, :, 0, :, :, :])
         # elif img_type == 'zstack':
@@ -193,16 +196,24 @@ def get_channels(add_metadata):
     Returns:
         A list of the channels used in the experiment
     """
-
+    # TODO fix this for airy scan
     # channels are the same for both conditions
+
     try:
-        add_metadata_detectors = add_metadata[0]['Experiment'] \
-            ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup'] \
+        add_metadata_detectors = add_metadata[0]['Experiment']\
+            ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup']\
             ['TrackSetup'][0]['Detectors']['Detector']
     except KeyError:
+        # maybe this zero also needs to be removed to catch all cases
         add_metadata_detectors = add_metadata[0]['Experiment'] \
             ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup'] \
             ['TrackSetup']['Detectors']['Detector']
+    except TypeError:
+        add_metadata_detectors = add_metadata[0][0]['Experiment'] \
+            ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup'] \
+            ['TrackSetup']['Detectors']['Detector']
+
+    ic(add_metadata_detectors)
 
     channel_names = []
     dyes = []
@@ -211,8 +222,13 @@ def get_channels(add_metadata):
     print('Channels')
     print('------------------------------------')
 
+    if isinstance(add_metadata_detectors, list) is False:
+        # airyscan has non-list metadata here, so convert to list
+        add_metadata_detectors = [add_metadata_detectors]
+
     # channels of all images are the same so image 0 taken
     for index, channel in enumerate(add_metadata_detectors):
+
         print(f'IMAGE {index}:')
         detectors.append(channel['ImageChannelName'])
         dyes.append(channel['Dye'])
@@ -303,10 +319,11 @@ def disp_scaling(img_add_metadata):
     for image in img_add_metadata:
         try:
             scale = image['Experiment']['ExperimentBlocks'] \
-            ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
-        except TypeError as e:
+                ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
+        except TypeError:
             scale = image[0]['Experiment']['ExperimentBlocks'] \
                 ['AcquisitionBlock']['AcquisitionModeSetup']['ScalingX']
+
         scaling_x.append(scale)
 
     return scaling_x
@@ -459,7 +476,6 @@ def load_h5_data(path: str):
             add_meta = pickle.load(add_metadata_pickle)
             add_metadata.append(add_meta)
 
-
     return image_data, metadata, add_metadata
 
 
@@ -473,9 +489,6 @@ def test_all_functions(path):
 
     Args:
         path: Specify the path to the folder containing
-
-    Returns:
-        A tuple of the following:
     """
 
     files, filenames = get_files(path)
@@ -499,10 +512,9 @@ def test_all_functions(path):
     load_h5_data(path)
 
 
-
 if __name__ == '__main__':
     # path = input('path to data folder: ')
-    #DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
-    DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
+    DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
+    # DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
     # /test_data/general'
     test_all_functions(DATA_PATH)
