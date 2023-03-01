@@ -30,7 +30,7 @@ def get_files(path: str):
     # Load the data
     os.chdir(path)
     # ic(os.listdir(path))
-    ic(os.getcwd())
+    #ic(os.getcwd())
 
     files_array = []
     filenames = []
@@ -213,7 +213,7 @@ def get_channels(add_metadata):
             ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup'] \
             ['TrackSetup']['Detectors']['Detector']
 
-    ic(add_metadata_detectors)
+    #ic(add_metadata_detectors)
 
     channel_names = []
     dyes = []
@@ -448,7 +448,7 @@ def load_h5_data(path: str):
     add_metadata = []
     filenames = []
 
-    ic(os.listdir(path))
+    #ic(os.listdir(path))
 
     for file in os.listdir(path):
         if file.endswith(".h5"):

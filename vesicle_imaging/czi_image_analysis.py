@@ -37,10 +37,9 @@ def plot_images(image_data, img_metadata, img_add_metadata, saving=True, scaleba
             for zstack_index, zstack in enumerate(timepoint):
                 # ic(zstack_index, zstack.shape)
 
-                temp_filename = img_metadata[0]['Filename'].replace('.czi', '') # TODO remove this 0
+                temp_filename = img_metadata['Filename'].replace('.czi', '')
                 title_filename = ''.join([temp_filename, '_', channel_names[channel_index], '_t', str(timepoint_index), '_z', str(zstack_index)])
                 output_filename = ''.join(['analysis/', title_filename, '.png'])
-
 
                 format.formatLH()
                 fig = plt.figure(figsize=(5, 5), frameon=False)
@@ -64,28 +63,62 @@ def plot_images(image_data, img_metadata, img_add_metadata, saving=True, scaleba
                 plt.show()
 
 
-def detect_circles(image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
+def detect_circles(image_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
                    detection_channel):
-    # this is all a mess and needs  to be fixed
+    # this is all a mess and needs to be fixed
+    # todo make params so both arrays and ints work
     # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     circles = []
 
-    # <<<<<<< Updated upstream
     # if circles.all() == [None]:
     print('the bigger param1, the fewer circles may be detected')
     print('the smaller param2 is, the more false circles may be detected')
     print('circles, corresponding to the larger accumulator values, will be returned first')
     print('-------------------------')
     print(' ')
-    for index, img in enumerate(image_czxy_data):
-        print('image', index + 1, 'is being processed...')
-        ic(img.shape)
-        # img = img[0] # this is probably z level, but not entirely sure
 
-        image = img[detection_channel][0]
-        # image = img
-        ic(image.shape)
-    # =======
+    if image_data.dtype == 'uint16':
+        image_data = handler.convert8bit(image_data)
+
+    ic(image_data.shape)
+    detection_img = image_data[detection_channel]
+    display_img = image_data[display_channel]
+
+
+
+    ic(detection_img.shape)
+    ic(display_img.shape)
+
+    # for index, img in enumerate(image_czxy_data):
+    #     print('image', index + 1, 'is being processed...')
+    #     ic(img.shape)
+    #     # img = img[0] # this is probably z level, but not entirely sure
+    #
+    #     image = img[detection_channel]
+    #     # image = img
+    #     ic(image.shape)
+    # # =======
+
+    for timepoint_index, timepoint_img in enumerate(detection_img):
+        ic(timepoint_index, timepoint_img.shape)
+
+        for zstack_index, zstack_img in enumerate(timepoint_img):
+            ic(zstack_index, zstack_img.shape)
+
+            output_img = image_data[display_channel][timepoint_index][zstack_index]
+            ic(output_img.shape)
+
+            circle = cv2.HoughCircles(zstack_img, cv2.HOUGH_GRADIENT,  # detection on vis image
+                                      dp=2,
+                                      minDist=minmax[1],  # + 110,
+                                      minRadius=minmax[0],
+                                      maxRadius=minmax[1],
+                                      param1=param1_array[index],
+                                      param2=param2_array[index])
+
+
+
+
     for index, img in enumerate(image_czxy_data):
         print('image', index + 1, 'is being processed...')
         # img = img[0] # this is probably z level, but not entirely sure
@@ -226,9 +259,17 @@ def test_all_functions(path):
     # ic| image_data[2].shape: (3, 69, 1, 1024, 1024)
 
     plot_images(image_data[test_index], metadata[test_index], add_metadata[test_index], saving = True)
-    detected_circles = hough_circles(image_data[test_index], metadata[test_index], add_metadata[test_index], )
-    #image_czxy_data, img_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
-    #detection_channel
+
+    hough_saving = False
+    param1_array = [10]
+    param2_array = [200]
+    minmax = [0,100]
+    display_channel = 1
+    detection_channel = 1
+
+    detected_circles = detect_circles(image_data[test_index], metadata[test_index], add_metadata[test_index],
+                                      param1_array = param1_array, param2_array = param2_array, minmax = minmax,
+                                      display_channel = display_channel, detection_channel=detection_channel)
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
@@ -237,3 +278,5 @@ if __name__ == '__main__':
     DATA_PATH = '../test_data/general'
 
     test_all_functions(DATA_PATH)
+# todo make that this is all a class and give the variables to the image instance
+# todo make consistent img vs image
