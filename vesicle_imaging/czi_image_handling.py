@@ -372,8 +372,7 @@ def convert8bit(img: list[int]):
     Returns:
         A uint8 type array
     """
-    print(img.dtype)
-    print('image is uint16, converting to uint8 ...')
+    print(f'image is {img.dtype}, converting to uint8 ...')
     # img8bit = cv2.convertScaleAbs(img, alpha=(255.0/65535.0))
     img8bit = img_as_ubyte(img)
     print('done converting to uint8')
@@ -514,7 +513,6 @@ def test_all_functions(path):
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
-    DATA_PATH = '/Users/heuberger/code/vesicle-imaging/test_data/general'
-    # DATA_PATH = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
-    # /test_data/general'
+    DATA_PATH = '../test_data/general'
+
     test_all_functions(DATA_PATH)
