@@ -651,11 +651,8 @@ def frap_analysis(
 
 if __name__ == "__main__":
     # path = input('path to data folder: ')
-    DATA_PATH = "/Volumes/RTA-A-SCICORE-CHE-PALIVAN$/FG/Palivan/heuber0000/experimental_data/LH22-51/biofilm1"
-    #DATA_PATH = "/Volumes/heuber0000/experimental_data/LH22-51/biofilm1"
-    DATA_PATH = "/Users/heuberger/switchdrive/zoe/20220621_FRAP_Zoe"
-    DATA_PATH = "/Volumes/rta-a-scicore-che-palivan$/FG/Palivan/heuber0000/experimental_data/LH23-02/FRAP_setA"
-    DATA_PATH = "/Volumes/rta-a-scicore-che-palivan$/FG/Palivan/heuber0000/experimental_data/LH23-02/FRAP_setB"
+    DATA_PATH = '../test_data/frap'
+
 
     BLEACH_FRAME = 5 # frame just after bleaching
     RECOVERY_END_FRAME = 100
