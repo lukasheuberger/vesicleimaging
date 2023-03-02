@@ -50,7 +50,8 @@ def get_files(path: str):
     return files_array, filenames
 
 
-def write_metadata_xml(path: str, files: list):
+def write_metadata_xml(path: str,
+                       files: list):
     """
     The write_metadata_xml function creates a folder named
     'metadata' in the path of the czi file. It then creates
@@ -97,7 +98,8 @@ def write_metadata_xml(path: str, files: list):
         print('Write special CZI XML metainformation for: ', xmlfile)
 
 
-def load_image_data(files: list, write_metadata: bool = False):
+def load_image_data(files: list,
+                    write_metadata: bool = False):
     """
     The load_image_data function loads the image data from a list of files.
     It returns three lists: all_img_data, all_metadata,
@@ -266,7 +268,8 @@ def disp_all_metadata(metadata):
         print('------------------------------------')
 
 
-def disp_basic_img_info(img_data, img_metadata):
+def disp_basic_img_info(img_data: list,
+                        img_metadata: list):
     """
     The disp_basic_img_info function displays the
     following information about each image:
@@ -329,7 +332,8 @@ def disp_scaling(img_add_metadata):
     return scaling_x
 
 
-def increase_brightness(img, value):
+def increase_brightness(img,
+                        value):
     """
     The increase_brightness function takes an image and increases
     the brightness of the image by a specified value. The function
@@ -380,7 +384,9 @@ def convert8bit(img: list[int]):
     return img8bit
 
 
-def save_files(data: list[int], metadata: list[str], add_metadata: list[str]):
+def save_files(data: list[int],
+               metadata: list[str],
+               add_metadata: list[str]):
     """
     The save_files function takes in a list of images, and saves them to
     hdf5 files. The function also takes in a list of metadata and

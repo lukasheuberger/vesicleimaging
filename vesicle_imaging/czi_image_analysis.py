@@ -1,27 +1,54 @@
 """Plotting of czi images and image analysis."""
-import czi_image_handling as handler
-
 import os
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from icecream import ic
+import pandas as pd
 from matplotlib_scalebar.scalebar import ScaleBar
+import czi_image_handling as handler
 
-import format
+# todo make that this is all a class and give the variables
+#  to the image instance
+# todo make consistent img vs image
+# todo combine data, metadata and add metadata into one thing and then
+#  extract later to recude no. of inputs
 
 
-def plot_images(image_data, img_metadata, img_add_metadata, saving=True, scalebar=True, scalebar_value=50):
+def plot_images(image_data: list,
+                img_metadata: list,
+                img_add_metadata: list,
+                saving: bool = True,
+                scalebar: bool = True,
+                scalebar_value: int = 50):
+    """
+    The plot_images function takes a list of images and plots them
+    in the same window. The function also takes a list of metadata
+    for each image, which is used to label the plot. The function
+    can be passed an argument that allows it to save each
+    figure as a png file.
+
+    Args:
+        image_data:list: image data to plot
+        img_metadata:list: image metadata
+        img_add_metadata:list: image additional metadata
+        saving:bool=True: Save the images to a folder
+        scalebar:bool=True: Add a scalebar to the images
+        scalebar_value:int=50: Set the length of the scalebar in µm
+
+    Returns:
+        Nothing
+    """
+
     # todo check if in right form or reduce via handler
-    # todo make channel name automatic
 
     # dimension order: C, T, Z, Y, X
 
     channels = handler.get_channels([img_add_metadata])
     channel_names = []
     for channel in channels[2]:
-        if channel == None:
+        if channel is None:
             channel_names.append('T-PMT')
         else:
             channel_names.append(channel.replace(" ", ""))
@@ -38,17 +65,26 @@ def plot_images(image_data, img_metadata, img_add_metadata, saving=True, scaleba
                 # ic(zstack_index, zstack.shape)
 
                 temp_filename = img_metadata['Filename'].replace('.czi', '')
-                title_filename = ''.join([temp_filename, '_', channel_names[channel_index], '_t', str(timepoint_index), '_z', str(zstack_index)])
-                output_filename = ''.join(['analysis/', title_filename, '.png'])
+                title_filename = ''.join([temp_filename, '_',
+                                          channel_names[channel_index], '_t',
+                                          str(timepoint_index), '_z',
+                                          str(zstack_index)])
+                output_filename = ''.join(['analysis/',
+                                           title_filename, '.png'])
 
-                format.formatLH()
                 fig = plt.figure(figsize=(5, 5), frameon=False)
                 fig.tight_layout(pad=0)
                 plt.imshow(zstack, cmap='gray')
                 plt.title(title_filename)
                 plt.axis('off')
-                scalebar = ScaleBar(dx=scaling_x[0], location='lower right', fixed_value=scalebar_value, fixed_units='µm', frameon=False, color='w')  # 1 pixel = scale [m]
-                plt.gca().add_artist(scalebar)
+                if scalebar:  # 1 pixel = scale [m]
+                    scalebar = ScaleBar(dx=scaling_x[0],
+                                        location='lower right',
+                                        fixed_value=scalebar_value,
+                                        fixed_units='µm',
+                                        frameon=False, color='w')
+
+                    plt.gca().add_artist(scalebar)
 
                 if saving:
                     try:
@@ -57,23 +93,51 @@ def plot_images(image_data, img_metadata, img_add_metadata, saving=True, scaleba
                         print('created new analysis folder: ', new_folder_path)
                     except FileExistsError:
                         pass
-                    plt.savefig(output_filename, dpi=300)  # ,image[channel],cmap='gray')
+                    plt.savefig(output_filename, dpi=300)
+                    # ,image[channel],cmap='gray')
                     print('image saved: ', output_filename)
 
                 plt.show()
 
 
-def detect_circles(image_data, image_metadata, hough_saving, param1_array, param2_array, minmax, display_channel,
-                   detection_channel):
+def detect_circles(image_data: list,
+                   image_metadata: list,
+                   param1_array: list,
+                   param2_array: list,
+                   minmax: list,
+                   display_channel: int,
+                   detection_channel: int,
+                   hough_saving: bool = False):
+    """
+    The detect_circles function takes a list of images and returns
+    a list of detected circles.
+    The circles are returned as three separate lists, one for each channel.
+    Each circle is represented by the x-y coordinates and radius in pixels.
+
+    Args:
+        image_data:list: list of images
+        image_metadata:list: list of image metadata
+        param1_array:list: list of detection sensitivity parameter 1
+        param2_array:list: list of detection sensitivity parameter 2
+        minmax:list: list of minimum and maximum radius of the detected circles
+        display_channel:int: channel to display circles on
+        detection_channel:int: channel to detect circles on
+        hough_saving:bool=False: output image with detected circles on them
+
+    Returns:
+        A list of circles
+    """
     # this is all a mess and needs to be fixed
     # todo make params so both arrays and ints work
     # todo make user be able to chose between radius in um and pixels
-    # see https://docs.opencv.org/2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
+    # see https://docs.opencv.org/
+    # 2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
 
     # if circles.all() == [None]:
     print('the bigger param1, the fewer circles may be detected')
-    print('the smaller param2 is, the more false circles may be detected')
-    print('circles, corresponding to the larger accumulator values, will be returned first')
+    print('the smaller param2, the more false circlesare detected')
+    print('circles, corresponding to larger accumulator values'
+          ' will be returned first')
     print('-------------------------')
     print(' ')
 
@@ -82,7 +146,6 @@ def detect_circles(image_data, image_metadata, hough_saving, param1_array, param
 
     if isinstance(image_metadata, list) is False:
         raise ValueError('image_metadata must be a list')
-
 
     # ic(image_data.shape)
 
@@ -95,19 +158,20 @@ def detect_circles(image_data, image_metadata, hough_saving, param1_array, param
             img = handler.convert8bit(img)
 
         detection_img = img[detection_channel]
-        #ic(detection_img.shape)
+        # ic(detection_img.shape)
 
         timepoint_circles = []
 
         for timepoint_index, timepoint_img in enumerate(detection_img):
-            #ic(timepoint_index, timepoint_img.shape)
+            # ic(timepoint_index, timepoint_img.shape)
 
             z_circles = []
             for zstack_index, zstack_img in enumerate(timepoint_img):
-                #ic(zstack_index, zstack_img.shape)
+                # ic(zstack_index, zstack_img.shape)
 
-                output_img = img[display_channel][timepoint_index][zstack_index]
-                #ic(output_img.shape)
+                output_img = img[display_channel]\
+                    [timepoint_index][zstack_index]
+                # ic(output_img.shape)
 
                 circle = cv2.HoughCircles(zstack_img, cv2.HOUGH_GRADIENT,
                                           dp=2,
@@ -118,14 +182,17 @@ def detect_circles(image_data, image_metadata, hough_saving, param1_array, param
                                           param2=param2_array[index])
 
                 if circle is not None:
-                    # convert the (x, y) coordinates and radius of the circles to integers
+                    # convert the (x, y) coords and radius to integers
                     circle = np.round(circle[0, :]).astype("int")
-                    # loop over the (x, y) coordinates and radius of the circles
-                    for (x, y, r) in circle:
-                        # draw the circle in the output image, then draw a rectangle
+                    # loop over the (x, y) coords and radius of circles
+                    for (x_coord, y_coord, radius) in circle:
+                        # draw circle in output image and draw a rectangle
                         # corresponding to the center of the circle
-                        cv2.circle(output_img, (x, y), r, (255, 255, 255), 2)  # x,y,radius
-                        cv2.rectangle(output_img, (x - 2, y - 2), (x + 2, y + 2), (255, 255, 255), -1)
+                        cv2.circle(output_img, (x_coord, y_coord),
+                                   radius, (255, 255, 255), 2)  # x,y,radius
+                        cv2.rectangle(output_img, (x_coord - 2, y_coord - 2),
+                                      (x_coord + 2, y_coord + 2),
+                                      (255, 255, 255), -1)
                     z_circles.append(circle)
 
                 fig = plt.figure(figsize=(5, 5), frameon=False)
@@ -140,98 +207,144 @@ def detect_circles(image_data, image_metadata, hough_saving, param1_array, param
                     except FileExistsError:
                         pass
 
-                    temp_filename = image_metadata[index]['Filename'].replace('.czi', '')
-                    output_filename = ''.join(['analysis/HoughCircles/', temp_filename, '_houghcircles.png'])
-                    # print(output_filename)
-                    plt.imsave(output_filename, output_img, cmap='gray')  # , vmin=0, vmax=20)
-
-                #print('______________________')
+                    temp_filename = image_metadata[index]\
+                        ['Filename'].replace('.czi', '')
+                    output_filename = ''.join(['analysis/HoughCircles/',
+                                               temp_filename,
+                                               '_houghcircles.png'])
+                    # ic(output_filename)
+                    plt.imsave(output_filename, output_img, cmap='gray')
+                    # , vmin=0, vmax=20)
 
             timepoint_circles.append(z_circles)
 
         circles.append(timepoint_circles)
 
-    ic(circles)
+    # ic(circles)
     return circles
 
 
-def measure_circle_intensity(image_xy_data, distance_from_border=10, excel_saving=True):
-    img_counter = 0
-    average_per_img = []
+def measure_circle_intensity(image_data: list,
+                             circles: list,
+                             measurement_channel: int,
+                             distance_from_border: int = 10,
+                             excel_saving: bool = True):
+    """
+    The measure_circle_intensity function takes a list of
+    images and circles as input.
+    It returns a dataframe with the measured summarized values.
 
-    for index, img in enumerate(image_xy_data):
-        image = img[0]
-        # plt.imshow(image[0])
-        output = image[1].copy()  # output on vis image
-        pixels_in_circle = []
-        if detected_circles[index] is not None:
-            for circle in detected_circles[index]:
+    Args:
+        image_data:list: Pass the image data to be analysed
+        circles:list: Pass the circles that are detected in the image
+        measurement_channel:int: Specify which channel to measure
+        distance_from_border:int=10: distance from border for measurements
+        excel_saving:bool=True: Save the results to an excel file
 
-                # print (circle)
-                # test_circle = [ 163, 1487,  108] # x,y,radius
-                x_0 = circle[0]
-                y_0 = circle[1]
-                radius = circle[2]
+    Returns:
+        A dataframe with the following columns:
+            image: index from list
+            timepoint: index from list
+            z_level: index from list
+            no_GUVs: number of counted GUVs
+            average: average over all counted GUVs in an image
+            min: mininum intensity of counted GUVs in an image
+            max: maximum intensity of counted GUVs in an image
+            stdev: standard deviation of all counted GUVs in an image
 
-                # make radius slighly smaller so border is not in range
-                measurement_radius = radius - distance_from_border  # [index]
-                # print (measurement_radius)
+    """
 
-                for x in range(x_0 - measurement_radius, x_0 + measurement_radius):
-                    for y in range(y_0 - measurement_radius, y_0 + measurement_radius):
-                        # todo this might be wrong, see czi_frap
+    if isinstance(image_data, list) is False:
+        raise ValueError('image_data must be a list')
+
+    results_df = pd.DataFrame(columns=['image', 'timepoint', 'z_level',
+                                       'no_GUVs', 'average', 'min',
+                                       'max', 'stdev'])
+
+    for index, img in enumerate(image_data):
+        print('image', index + 1, 'is being processed...')
+
+        if img.dtype == 'uint16':
+            img = handler.convert8bit(img)
+
+        detection_img = img[measurement_channel]
+        ic(detection_img.shape)
+
+        for timepoint_index, timepoint_img in enumerate(detection_img):
+            # ic(timepoint_index, timepoint_img.shape)
+
+            for zstack_index, zstack_img in enumerate(timepoint_img):
+                # ic(zstack_index, zstack_img.shape)
+
+                # if circles[index] is not None: # maybe only [index] here
+                try:
+                    measurement_circles = circles[index]\
+                        [timepoint_index][zstack_index]
+                    pixels_in_circle = []
+
+                    for circle in measurement_circles:
+                        x_0 = circle[0]
+                        y_0 = circle[1]
+                        radius_px = circle[2]
+                        # if radius is adapted to um
+                        # this needs to be changed too...
+                        # ic(x_0, y_0, radius_px)
+
+                        # make radius slighly smaller so border is not in range
+                        measurement_radius = radius_px - distance_from_border
+                        # ic(measurement_radius)
 
                         # iterate over all pixels in bleached circle
-                        for x_coord in range(x_0 - radius_px, x_0 + radius_px):
-                            for y_coord in range(y_0 - radius_px, y_0 + radius_px):
+                        for x_coord in range(x_0 - measurement_radius,
+                                             x_0 + measurement_radius):
+                            for y_coord in range(y_0 - measurement_radius,
+                                                 y_0 + measurement_radius):
                                 delta_x = x_coord - x_0
                                 delta_y = y_coord - y_0
 
                                 distance_squared = delta_x ** 2 + delta_y ** 2
-                                if distance_squared <= (radius_px ** 2):
-                                    pixel_val = measurement_image[0][y_coord][x_coord]
+                                if distance_squared <= \
+                                        (measurement_radius ** 2):
+                                    pixel_val = zstack_img[y_coord][x_coord]
                                     pixels_in_circle.append(pixel_val)
 
+                    # print('no. of GUVs counted: ', len(measurement_circles))
+                    # print('number of pixels: ', len(pixels_in_circle))
+                    # print('min: ', np.min(pixels_in_circle))
+                    # print('max: ', np.max(pixels_in_circle))
+                    # print('average: ', np.mean(pixels_in_circle))
+                    # print('stdev: ', np.std(pixels_in_circle))
+                    # print('--------------------')
 
-                        dx = x - circle[0]
-                        dy = y - circle[1]
-                        distanceSquared = dx ** 2 + dy ** 2
-                        # print (distanceSquared)
-                        if distanceSquared <= (measurement_radius ** 2):
-                            # img_five[0][0] = first image, fluorescein channel
-                            pixel_val = image[0][dy][dx]  # measurement on GFP image (= 0)
-                            # todo this should probably be y, x instead of dy, dx
-                            pixels_in_circle.append(pixel_val)
+                    results_df = results_df.append({
+                        'image': index,
+                        'timepoint': timepoint_index,
+                        'z_level': zstack_index,
+                        'no_GUVs': len(measurement_circles),
+                        'average': np.mean(pixels_in_circle),
+                        'min': np.min(pixels_in_circle),
+                        'max': np.max(pixels_in_circle),
+                        'stdev': np.std(pixels_in_circle)
+                    }, ignore_index=True)
+                except IndexError:
+                    print('skipped this image, no circles found')
 
+    if excel_saving:
+        results_df.to_excel('analysis.xlsx')
 
-                cv2.circle(output, (x_0, y_0), (measurement_radius), (255, 255, 255), 2)  # x,y,radius
-            print('filename: ', filenames[index])
-            print('no. of GUVs counted: ', len(detected_circles[index]))
-            print('number of pixels: ', len(pixels_in_circle))
-            print('min: ', np.min(pixels_in_circle))
-            print('max: ', np.max(pixels_in_circle))
-            print('average: ', np.mean(pixels_in_circle))
-            print('stdev: ', np.std(pixels_in_circle))
-            print('--------------------')
-        else:
-            print('no circles were detected')
-        img_average = np.average(pixels_in_circle)
-        img_stdev = np.std(pixels_in_circle)
-
-        # print (img_average, img_stdev)
-        average_per_img.append(img_average)  # <, img_stdev])
-
-        fig = plt.figure(figsize=(10, 10), frameon=False)
-        fig.tight_layout(pad=0)
-        plt.imshow(output, cmap='gray')
-        plt.axis('off')
-        # plt.imsave('output.png',output,cmap='hot')
-
-        print(average_per_img)
-
+    return results_df
 
 
 def test_all_functions(path):
+    """
+    The test_all_functions function is a test function that runs
+    all other functions in this file. It takes one argument,
+    which is the path to where test images are located.
+
+
+    Args:
+        path: Specify the path to the directory containing test files
+    """
 
     from czi_image_handling import load_h5_data, disp_basic_img_info
     os.chdir(path)
@@ -242,33 +355,31 @@ def test_all_functions(path):
     disp_basic_img_info(image_data, metadata)
     test_index = 0
 
-    # C, T, Z, Y, X
-    # ic| image_data[0].shape: (2, 1, 1, 1024, 1024)
-    # ic| image_data[1].shape: (2, 1, 52, 1024, 1024)
-    # ic| image_data[2].shape: (3, 69, 1, 1024, 1024)
+    plot_images(image_data[test_index], metadata[test_index],
+                add_metadata[test_index], saving=True)
 
-    #plot_images(image_data[test_index], metadata[test_index], add_metadata[test_index], saving = True)
-
-    hough_saving = False
     param1_array = [10]
     param2_array = [150]
-    minmax = [30,60]
+    minmax = [30, 60]
     display_channel = 0
     detection_channel = 0
 
     test_data = [image_data[test_index]]
     test_metadata = [metadata[test_index]]
 
-    detected_circles = detect_circles(test_data, test_metadata, add_metadata[test_index],
-                                      param1_array = param1_array, param2_array = param2_array, minmax = minmax,
-                                      display_channel = display_channel, detection_channel=detection_channel)
+    detected_circles = detect_circles(test_data, test_metadata,
+                                      param1_array=param1_array,
+                                      param2_array=param2_array,
+                                      minmax=minmax,
+                                      display_channel=display_channel,
+                                      detection_channel=detection_channel)
 
-    measure_circle_intensity(test_data)
+    measurement_channel = 0
+    measure_circle_intensity(test_data, detected_circles, measurement_channel)
+
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
     DATA_PATH = '../test_data/general'
 
     test_all_functions(DATA_PATH)
-# todo make that this is all a class and give the variables to the image instance
-# todo make consistent img vs image
