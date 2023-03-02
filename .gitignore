@@ -134,3 +134,4 @@ example_notebook.ipynb
 *.pkl
 *.xlsx
 *.h5
+*.png
