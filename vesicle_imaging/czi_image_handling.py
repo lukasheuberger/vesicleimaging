@@ -30,7 +30,7 @@ def get_files(path: str):
     # Load the data
     os.chdir(path)
     # ic(os.listdir(path))
-    #ic(os.getcwd())
+    # ic(os.getcwd())
 
     files_array = []
     filenames = []
@@ -495,12 +495,15 @@ def test_all_functions(path):
     Args:
         path: Specify the path to the folder containing
     """
+    os.chdir(path)
+    path = os.getcwd()
+    ic(path)
 
     files, filenames = get_files(path)
     ic(filenames)
     write_metadata_xml(path, files)
-    img_data, metadata, add_metadata = load_image_data(files,
-                                                       write_metadata=False)
+    img_data, metadata, add_metadata =\
+        load_image_data(files, write_metadata=False)
 
     # ic(img_data[0].shape)
     disp_basic_img_info(img_data, metadata)
