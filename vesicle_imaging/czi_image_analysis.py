@@ -42,6 +42,9 @@ def plot_images(image_data: list,
     """
 
     # todo check if in right form or reduce via handler
+    # todo make it take single image and also whole
+    #  array of images (see other functions for this)
+    # todo exception handling if / is in dye name (e.g. bodipy 630/650)
 
     # dimension order: C, T, Z, Y, X
 
@@ -50,6 +53,8 @@ def plot_images(image_data: list,
     for channel in channels[2]:
         if channel is None:
             channel_names.append('T-PMT')
+        elif channel == "BODIPY 630/650-X":
+            channel_names.append('BODIPY 630-650-X')
         else:
             channel_names.append(channel.replace(" ", ""))
 
@@ -64,13 +69,15 @@ def plot_images(image_data: list,
             for zstack_index, zstack in enumerate(timepoint):
                 # ic(zstack_index, zstack.shape)
 
-                temp_filename = img_metadata['Filename'].replace('.czi', '')
+                try:
+                    temp_filename = img_metadata['Filename'].replace('.czi', '')
+                except TypeError:
+                    temp_filename = img_metadata[0]['Filename'].replace('.czi', '')
+
                 title_filename = ''.join([temp_filename, '_',
                                           channel_names[channel_index], '_t',
                                           str(timepoint_index), '_z',
                                           str(zstack_index)])
-                output_filename = ''.join(['analysis/',
-                                           title_filename, '.png'])
 
                 fig = plt.figure(figsize=(5, 5), frameon=False)
                 fig.tight_layout(pad=0)
@@ -89,10 +96,15 @@ def plot_images(image_data: list,
                 if saving:
                     try:
                         new_folder_path = os.path.join(os.getcwd(), 'analysis')
+                        ic(new_folder_path)
                         os.mkdir(new_folder_path)
                         print('created new analysis folder: ', new_folder_path)
-                    except FileExistsError:
+                    except (FileExistsError, FileNotFoundError):
                         pass
+
+                    output_filename = ''.join([os.getcwd(), '/analysis/',
+                                               title_filename, '.png'])
+
                     plt.savefig(output_filename, dpi=300)
                     # ,image[channel],cmap='gray')
                     print('image saved: ', output_filename)
@@ -172,14 +184,23 @@ def detect_circles(image_data: list,
                 output_img = img[display_channel]\
                     [timepoint_index][zstack_index]
                 # ic(output_img.shape)
-
-                circle = cv2.HoughCircles(zstack_img, cv2.HOUGH_GRADIENT,
+                try:
+                    circle = cv2.HoughCircles(zstack_img, cv2.HOUGH_GRADIENT,
                                           dp=2,
                                           minDist=minmax[1],
                                           minRadius=minmax[0],
                                           maxRadius=minmax[1],
                                           param1=param1_array[index],
                                           param2=param2_array[index])
+                except TypeError:
+                    circle = cv2.HoughCircles(zstack_img, cv2.HOUGH_GRADIENT,
+                                              dp=2,
+                                              minDist=minmax[1],
+                                              minRadius=minmax[0],
+                                              maxRadius=minmax[1],
+                                              param1=param1_array,
+                                              param2=param2_array)
+                # todo make that params can be both arrays and single values
 
                 if circle is not None:
                     # convert the (x, y) coords and radius to integers
@@ -206,8 +227,9 @@ def detect_circles(image_data: list,
                         os.mkdir('analysis/HoughCircles')
                     except FileExistsError:
                         pass
-
-                    temp_filename = image_metadata[index]\
+                    # todo check if this works with this
+                    #  zero or needs try except to work
+                    temp_filename = image_metadata[index][0]\
                         ['Filename'].replace('.czi', '')
                     output_filename = ''.join(['analysis/HoughCircles/',
                                                temp_filename,
@@ -225,6 +247,7 @@ def detect_circles(image_data: list,
 
 
 def measure_circle_intensity(image_data: list,
+                             image_metadata: list,
                              circles: list,
                              measurement_channel: int,
                              distance_from_border: int = 10,
@@ -316,7 +339,11 @@ def measure_circle_intensity(image_data: list,
                     # print('stdev: ', np.std(pixels_in_circle))
                     # print('--------------------')
 
+                    filename = image_metadata[index][0] \
+                        ['Filename'].replace('.czi', '')
+
                     results_df = results_df.append({
+                        'filename': filename,
                         'image': index,
                         'timepoint': timepoint_index,
                         'z_level': zstack_index,
@@ -375,7 +402,7 @@ def test_all_functions(path):
                                       detection_channel=detection_channel)
 
     measurement_channel = 0
-    measure_circle_intensity(test_data, detected_circles, measurement_channel)
+    measure_circle_intensity(test_data, test_metadata, detected_circles, measurement_channel)
 
 
 if __name__ == '__main__':
