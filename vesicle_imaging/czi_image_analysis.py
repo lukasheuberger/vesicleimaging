@@ -119,7 +119,8 @@ def detect_circles(image_data: list,
                    minmax: list,
                    display_channel: int,
                    detection_channel: int,
-                   hough_saving: bool = False):
+                   hough_saving: bool = False,
+                   debug: bool = False):
     """
     The detect_circles function takes a list of images and returns
     a list of detected circles.
@@ -147,7 +148,7 @@ def detect_circles(image_data: list,
 
     # if circles.all() == [None]:
     print('the bigger param1, the fewer circles may be detected')
-    print('the smaller param2, the more false circlesare detected')
+    print('the smaller param2, the more false circle sare detected')
     print('circles, corresponding to larger accumulator values'
           ' will be returned first')
     print('-------------------------')
@@ -164,7 +165,11 @@ def detect_circles(image_data: list,
     circles = []
 
     for index, img in enumerate(image_data):
-        print('image', index + 1, 'is being processed...')
+        try:
+            filename = image_metadata[index][0]['Filename']
+        except KeyError:
+            filename = image_metadata[index]['Filename']
+        print(f'file {index+1} ({filename}) is being processed...')
 
         if img.dtype == 'uint16':
             img = handler.convert8bit(img)
@@ -182,7 +187,7 @@ def detect_circles(image_data: list,
                 # ic(zstack_index, zstack_img.shape)
 
                 output_img = img[display_channel]\
-                    [timepoint_index][zstack_index]
+                    [timepoint_index][zstack_index].copy()
                 # ic(output_img.shape)
                 try:
                     circle = cv2.HoughCircles(zstack_img, cv2.HOUGH_GRADIENT,
@@ -202,6 +207,9 @@ def detect_circles(image_data: list,
                                               param2=param2_array)
                 # todo make that params can be both arrays and single values
 
+                if debug:
+                    ic(circle)
+
                 if circle is not None:
                     # convert the (x, y) coords and radius to integers
                     circle = np.round(circle[0, :]).astype("int")
@@ -215,6 +223,9 @@ def detect_circles(image_data: list,
                                       (x_coord + 2, y_coord + 2),
                                       (255, 255, 255), -1)
                     z_circles.append(circle)
+
+                if debug:
+                    ic(z_circles)
 
                 fig = plt.figure(figsize=(5, 5), frameon=False)
                 fig.tight_layout(pad=0)
@@ -274,6 +285,7 @@ def measure_circle_intensity(image_data: list,
             min: mininum intensity of counted GUVs in an image
             max: maximum intensity of counted GUVs in an image
             stdev: standard deviation of all counted GUVs in an image
+        pixels_in_circle:
 
     """
 
@@ -284,6 +296,8 @@ def measure_circle_intensity(image_data: list,
                                        'no_GUVs', 'average', 'min',
                                        'max', 'stdev'])
 
+    intensity_per_circle = []
+
     for index, img in enumerate(image_data):
         print('image', index + 1, 'is being processed...')
 
@@ -292,6 +306,8 @@ def measure_circle_intensity(image_data: list,
 
         detection_img = img[measurement_channel]
         ic(detection_img.shape)
+
+        circles_per_image = []
 
         for timepoint_index, timepoint_img in enumerate(detection_img):
             # ic(timepoint_index, timepoint_img.shape)
@@ -303,6 +319,7 @@ def measure_circle_intensity(image_data: list,
                 try:
                     measurement_circles = circles[index]\
                         [timepoint_index][zstack_index]
+                    average_per_circle = []
                     pixels_in_circle = []
 
                     for circle in measurement_circles:
@@ -330,8 +347,10 @@ def measure_circle_intensity(image_data: list,
                                         (measurement_radius ** 2):
                                     pixel_val = zstack_img[y_coord][x_coord]
                                     pixels_in_circle.append(pixel_val)
+                        average_per_circle.append(np.mean(pixels_in_circle))
+                    circles_per_image.append(average_per_circle)
 
-                    # print('no. of GUVs counted: ', len(measurement_circles))
+                    print('no. of GUVs counted: ', len(measurement_circles))
                     # print('number of pixels: ', len(pixels_in_circle))
                     # print('min: ', np.min(pixels_in_circle))
                     # print('max: ', np.max(pixels_in_circle))
@@ -339,8 +358,12 @@ def measure_circle_intensity(image_data: list,
                     # print('stdev: ', np.std(pixels_in_circle))
                     # print('--------------------')
 
-                    filename = image_metadata[index][0] \
-                        ['Filename'].replace('.czi', '')
+                    try:
+                        filename = image_metadata[index][0] \
+                            ['Filename'].replace('.czi', '')
+                    except KeyError:
+                        filename = image_metadata[index] \
+                            ['Filename'].replace('.czi', '')
 
                     results_df = results_df.append({
                         'filename': filename,
@@ -356,10 +379,13 @@ def measure_circle_intensity(image_data: list,
                 except IndexError:
                     print('skipped this image, no circles found')
 
+        intensity_per_circle.append(circles_per_image)
+
     if excel_saving:
         results_df.to_excel('analysis.xlsx')
+        print('excel saved')
 
-    return results_df
+    return results_df, intensity_per_circle
 
 
 def test_all_functions(path):
@@ -402,11 +428,11 @@ def test_all_functions(path):
                                       detection_channel=detection_channel)
 
     measurement_channel = 0
-    measure_circle_intensity(test_data, test_metadata, detected_circles, measurement_channel)
-
+    df, circles = measure_circle_intensity(test_data, test_metadata, detected_circles, measurement_channel)
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
     DATA_PATH = '../test_data/general'
 
     test_all_functions(DATA_PATH)
+# todo make all this in one file that just contains all functions from the other files
