@@ -4,9 +4,10 @@ from PyQt5.QtWidgets import *
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
-sys.path.insert(1, '/Users/lukasheuberger/switchdrive/08_code')
 import matplotlib.pyplot as plt
-from image_analysis import img_functions as imgfunc
+import czi_image_handling as cih
+from icecream import ic
+
 
 
 class GUIFunctions():
@@ -25,7 +26,7 @@ class GUIFunctions():
         """
 
         # self.sourcefolder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
-        self.sourcefolder = '/Users/lukasheuberger/switchdrive/08_code/image_handling/testdata'
+        self.sourcefolder = '/Users/heuberger/code/vesicle-imaging/test_data/general'
         print(self.sourcefolder)
 
         self.FilePathLabel.setText(self.sourcefolder)
@@ -77,16 +78,17 @@ class GUIFunctions():
 
     def OpenFolder(self):
         print('yay')
-        self.files, self.filenames = imgfunc.get_files(self.sourcefolder)
+        self.files, self.filenames = cih.get_files(self.sourcefolder)
         print(self.files)
         # print (images)
         print('number of images: ', len(self.files))
 
     def LoadImageData(self):
-        self.img_data, self.metadata, self.add_metadata = imgfunc.load_image_data(self.files)
-        self.img = imgfunc.extract_channels_xy(self.img_data)
-        self.channel = self.img[0][1]
-        print(self.img[0].shape)
+        self.img_data, self.metadata, self.add_metadata = cih.load_image_data(self.files)
+        self.img_reduced = cih.extract_channels(self.img_data)
+        ic(self.img_reduced.shape)
+        # self.channel = self.img[0][1]
+        # print(self.img[0].shape)
         # mpl.image.imsave('name.png', self.channel)
 
     def PlotImage(self):
