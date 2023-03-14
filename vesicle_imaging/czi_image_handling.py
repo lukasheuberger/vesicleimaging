@@ -153,11 +153,10 @@ def extract_channels(img_data: list[int]):
     # TODO FIX ME
     extracted_channels = []
     for image in img_data:
-
         try:
             # ic(image.shape)
             extracted_channels.append(image[0, 0, :, :, :, :, :])
-        except AttributeError:
+        except (AttributeError, TypeError):
             # ic(image[0].shape)
             extracted_channels.append(image[0][0, 0, :, :, :, :, :])
         # if img_type == 'zstack':
