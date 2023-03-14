@@ -1,8 +1,8 @@
 import sys
 
 from PyQt6.QtWidgets import *
-#from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-#from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import matplotlib.pyplot as plt
 import czi_image_handling as cih
@@ -78,6 +78,7 @@ class GUIFunctions():
         #
         # self.FileShapeLabel.setText(no_molos)
 # todo make option to convert to hdf5
+
     def OpenFolder(self):
         print('yay')
         self.files, self.filenames = cih.get_files(self.sourcefolder)
@@ -148,8 +149,8 @@ class qtGUI(QDialog, GUIFunctions):
         # self.showMaximized()
 
         self.createLoadBox()
-        # self.createPlotCanvas()
-        # self.createOptionBox()
+        self.createPlotCanvas()
+        self.createOptionBox()
 
         topLayout = QHBoxLayout()
 
@@ -157,8 +158,8 @@ class qtGUI(QDialog, GUIFunctions):
 
         mainLayout.addLayout(topLayout, 0, 0)
         mainLayout.addWidget(self.DataLoadBox, 1, 0, 1, 1)
-        # mainLayout.addWidget(self.PlotCanvasBox, 1, 1, 4, 1)
-        # mainLayout.addWidget(self.OptionBox,            2, 0, 1, 1)
+        mainLayout.addWidget(self.PlotCanvasBox, 1, 1, 4, 1)
+        mainLayout.addWidget(self.OptionBox, 2, 0, 1, 1)
 
         self.setLayout(mainLayout)
 
@@ -210,7 +211,7 @@ class qtGUI(QDialog, GUIFunctions):
 
         PlotType_Label = QLabel("Channel:")
         self.PlotType = QComboBox()
-        self.PlotType.addItems([0, 1])
+        self.PlotType.addItems(['0', '1'])
         # self.PlotType.currentIndexChanged.connect(self.PlotData)
 
         layout = QGridLayout()
