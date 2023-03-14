@@ -1,14 +1,15 @@
 import sys
 
-from PyQt5.QtWidgets import *
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from PyQt6.QtWidgets import *
+#from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+#from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 
 import matplotlib.pyplot as plt
 import czi_image_handling as cih
+import czi_image_analysis as cia
 from icecream import ic
 
-
+# todo make this into a gui wrapper for all other functions
 
 class GUIFunctions():
     """
@@ -26,13 +27,14 @@ class GUIFunctions():
         """
 
         # self.sourcefolder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
-        self.sourcefolder = '/Users/heuberger/code/vesicle-imaging/test_data/general'
+        self.sourcefolder = '/Users/heuberger/code/vesicleimaging/test_data/general'
         print(self.sourcefolder)
 
         self.FilePathLabel.setText(self.sourcefolder)
 
         self.OpenFolder()
         self.LoadImageData()
+        self.PlotImages()
         # self.PlotImage()
 
         # if self.fileNameData:
@@ -75,7 +77,7 @@ class GUIFunctions():
         # no_molos = "".join(("number of molos measured: ", str(self.data_cols)))
         #
         # self.FileShapeLabel.setText(no_molos)
-
+# todo make option to convert to hdf5
     def OpenFolder(self):
         print('yay')
         self.files, self.filenames = cih.get_files(self.sourcefolder)
@@ -86,10 +88,15 @@ class GUIFunctions():
     def LoadImageData(self):
         self.img_data, self.metadata, self.add_metadata = cih.load_image_data(self.files)
         self.img_reduced = cih.extract_channels(self.img_data)
-        ic(self.img_reduced.shape)
+        ic(len(self.img_reduced))
+        ic(self.img_reduced[0].shape)
         # self.channel = self.img[0][1]
         # print(self.img[0].shape)
         # mpl.image.imsave('name.png', self.channel)
+
+    def PlotImages(self):
+        for ix, img in enumerate(self.img_reduced):
+            cia.plot_images(img, self.metadata[ix], self.add_metadata[ix], saving=True)
 
     def PlotImage(self):
         # fig, axs = plt.subplots(len(self.img), 3, figsize=(15, 15))
@@ -141,7 +148,7 @@ class qtGUI(QDialog, GUIFunctions):
         # self.showMaximized()
 
         self.createLoadBox()
-        self.createPlotCanvas()
+        # self.createPlotCanvas()
         # self.createOptionBox()
 
         topLayout = QHBoxLayout()
@@ -150,7 +157,7 @@ class qtGUI(QDialog, GUIFunctions):
 
         mainLayout.addLayout(topLayout, 0, 0)
         mainLayout.addWidget(self.DataLoadBox, 1, 0, 1, 1)
-        mainLayout.addWidget(self.PlotCanvasBox, 1, 1, 4, 1)
+        # mainLayout.addWidget(self.PlotCanvasBox, 1, 1, 4, 1)
         # mainLayout.addWidget(self.OptionBox,            2, 0, 1, 1)
 
         self.setLayout(mainLayout)
