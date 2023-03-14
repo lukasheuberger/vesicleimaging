@@ -305,7 +305,7 @@ def measure_circle_intensity(image_data: list,
             img = handler.convert8bit(img)
 
         detection_img = img[measurement_channel]
-        ic(detection_img.shape)
+        # ic(detection_img.shape)
 
         circles_per_image = []
 
@@ -316,13 +316,18 @@ def measure_circle_intensity(image_data: list,
                 # ic(zstack_index, zstack_img.shape)
 
                 # if circles[index] is not None: # maybe only [index] here
+                # print(circles[index][timepoint_index][zstack_index])
+
                 try:
                     measurement_circles = circles[index]\
                         [timepoint_index][zstack_index]
+                    # ic(measurement_circles)
+
                     average_per_circle = []
                     pixels_in_circle = []
 
                     for circle in measurement_circles:
+                        # ic(circle)
                         x_0 = circle[0]
                         y_0 = circle[1]
                         radius_px = circle[2]
@@ -348,6 +353,7 @@ def measure_circle_intensity(image_data: list,
                                     pixel_val = zstack_img[y_coord][x_coord]
                                     pixels_in_circle.append(pixel_val)
                         average_per_circle.append(np.mean(pixels_in_circle))
+
                     circles_per_image.append(average_per_circle)
 
                     print('no. of GUVs counted: ', len(measurement_circles))
