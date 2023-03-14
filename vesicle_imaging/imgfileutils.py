@@ -6,6 +6,7 @@
 # Author      : czsrh
 # Date        : 10.12.2020
 # Institution : Carl Zeiss Microscopy GmbH
+# Source      : https://github.com/zeiss-microscopy/OAD/blob/13b808cd9333f7bb40d66e635c22085414b7abb8/jupyter_notebooks/Read_CZI_and_OMETIFF_and_Napari/modules/imgfileutils.py
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
 #################################################################
