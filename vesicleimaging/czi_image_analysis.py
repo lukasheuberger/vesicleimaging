@@ -15,7 +15,7 @@ import czi_image_handling as handler
 # todo combine data, metadata and add metadata into one thing and then
 #  extract later to recude no. of inputs
 
-
+# todo make possible to change cmap
 def plot_images(image_data: list,
                 img_metadata: list,
                 img_add_metadata: list,
@@ -299,7 +299,11 @@ def measure_circle_intensity(image_data: list,
     intensity_per_circle = []
 
     for index, img in enumerate(image_data):
-        print('image', index + 1, 'is being processed...')
+        try:
+            filename = image_metadata[index][0]['Filename']
+        except KeyError:
+            filename = image_metadata[index]['Filename']
+        print(f'file {index + 1} ({filename}) is being processed...')
 
         if img.dtype == 'uint16':
             img = handler.convert8bit(img)
@@ -313,7 +317,7 @@ def measure_circle_intensity(image_data: list,
             # ic(timepoint_index, timepoint_img.shape)
 
             for zstack_index, zstack_img in enumerate(timepoint_img):
-                # ic(zstack_index, zstack_img.shape)
+                # print(zstack_index, zstack_img.shape)
 
                 # if circles[index] is not None: # maybe only [index] here
                 # print(circles[index][timepoint_index][zstack_index])
@@ -321,7 +325,8 @@ def measure_circle_intensity(image_data: list,
                 try:
                     measurement_circles = circles[index]\
                         [timepoint_index][zstack_index]
-                    # ic(measurement_circles)
+                    print(len(measurement_circles))
+                    #ic(measurement_circles)
 
                     average_per_circle = []
                     pixels_in_circle = []
@@ -339,7 +344,7 @@ def measure_circle_intensity(image_data: list,
                         measurement_radius = radius_px - distance_from_border
                         # ic(measurement_radius)
 
-                        # iterate over all pixels in bleached circle
+                        # iterate over all pixels in circle
                         for x_coord in range(x_0 - measurement_radius,
                                              x_0 + measurement_radius):
                             for y_coord in range(y_0 - measurement_radius,
@@ -348,10 +353,15 @@ def measure_circle_intensity(image_data: list,
                                 delta_y = y_coord - y_0
 
                                 distance_squared = delta_x ** 2 + delta_y ** 2
-                                if distance_squared <= \
-                                        (measurement_radius ** 2):
-                                    pixel_val = zstack_img[y_coord][x_coord]
-                                    pixels_in_circle.append(pixel_val)
+                                try:
+                                    if distance_squared <= \
+                                            (measurement_radius ** 2):
+                                        pixel_val = zstack_img[y_coord][x_coord]
+                                        pixels_in_circle.append(pixel_val)
+                                except IndexError:
+                                    print('skipping this circle')
+                                    # todo fix this!
+
                         average_per_circle.append(np.mean(pixels_in_circle))
 
                     circles_per_image.append(average_per_circle)
@@ -382,10 +392,11 @@ def measure_circle_intensity(image_data: list,
                         'max': np.max(pixels_in_circle),
                         'stdev': np.std(pixels_in_circle)
                     }, ignore_index=True)
-                except IndexError:
+                except TypeError:
                     print('skipped this image, no circles found')
 
         intensity_per_circle.append(circles_per_image)
+        print('-----------------------------')
 
     if excel_saving:
         results_df.to_excel('analysis.xlsx')
@@ -434,7 +445,8 @@ def test_all_functions(path):
                                       detection_channel=detection_channel)
 
     measurement_channel = 0
-    df, circles = measure_circle_intensity(test_data, test_metadata, detected_circles, measurement_channel)
+    df, circles = measure_circle_intensity(test_data, test_metadata, detected_circles,
+                                           measurement_channel, excel_saving=False)
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
