@@ -452,6 +452,7 @@ def load_h5_data(path: str):
     add_metadata = []
     filenames = []
 
+    # ic(path)
     # ic(os.listdir(path))
 
     for file in os.listdir(path):

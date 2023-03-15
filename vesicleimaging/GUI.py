@@ -1,18 +1,17 @@
+import os
 import sys
 
-from PyQt6.QtWidgets import *
+import matplotlib.pyplot as plt
 from PyQt6.QtCore import Qt
-
+from PyQt6.QtWidgets import *
+from icecream import ic
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-
-import matplotlib.pyplot as plt
-import czi_image_handling as cih
-import czi_image_analysis as cia
-from icecream import ic
-import numpy as np
 from matplotlib_scalebar.scalebar import ScaleBar
-import matplotlib as mpl
+
+import czi_image_analysis as cia
+import czi_image_handling as cih
+
 
 # todo make this into a gui wrapper for all other functions
 
@@ -32,15 +31,10 @@ class GUIFunctions():
         """
 
         # self.sourcefolder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
-        self.sourcefolder = '/Users/heuberger/code/vesicleimaging/test_data/general'
+        self.sourcefolder = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
         print(self.sourcefolder)
-
-        self.FilePathLabel.setText(self.sourcefolder)
-
-        self.OpenFolder()
-        self.LoadImageData()
-        #self.SaveImages()
-        self.PlotImage()
+        self.filetype = 'czi'
+        self.Initialize()
 
         # if self.fileNameData:
         #     print(self.fileNameData)
@@ -83,8 +77,23 @@ class GUIFunctions():
         #
         # self.FileShapeLabel.setText(no_molos)
 
+    def Initialize(self):
+        os.chdir(self.sourcefolder)
+        print(self.sourcefolder)
+
+        self.FilePathLabel.setText(self.sourcefolder)
+
+        self.OpenFolder()
+        self.LoadImageData()
+        # self.SaveImages()
+        self.PlotImage()
+    # todo determine somewhere if data is czi or hdf5 and act accordingly (already does it but would like to be more elegant)
     def ChooseInputHDF5Folder(self):
-        pass
+        # self.sourcefolder = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
+        self.sourcefolder = '/Users/lukasheuberger/code/phd/vesicle-imaging/test_data/general'
+        print(self.sourcefolder)
+        self.filetype = 'hdf5'
+        self.Initialize()
 
 
     def OpenFolder(self):
@@ -92,6 +101,9 @@ class GUIFunctions():
         ic(self.files)
         # print (images)
         print('number of images: ', len(self.files))
+
+    def WriteMetadataToXML(self):
+        cih.write_metadata_xml(self.sourcefolder, self.files)
 
     def LoadChannels(self, index=0):
         index = self.ImageSelector.currentIndex()
@@ -117,8 +129,13 @@ class GUIFunctions():
 
 
     def LoadImageData(self):
-        self.img_data, self.metadata, self.add_metadata = cih.load_image_data(self.files)
-        self.img_reduced = cih.extract_channels(self.img_data)
+
+        if self.filetype == 'czi':
+            self.img_data, self.metadata, self.add_metadata = cih.load_image_data(self.files)
+            self.img_reduced = cih.extract_channels(self.img_data)
+
+        if self.filetype == 'hdf5':
+            self.img_reduced, self.metadata, self.add_metadata = cih.load_h5_data(self.sourcefolder)
 
         ic(len(self.img_reduced))
         ic(self.img_reduced[0].shape)
@@ -140,24 +157,38 @@ class GUIFunctions():
 
         self.LoadChannels()#index=0)
 
-        # probably some of this can be their own functions
+        # todo probably some of this can be their own functions
 
+        self.DetermineImageType()
+
+        self.MetadataWriteButton.setEnabled(True)
+
+    def DetermineImageType(self):
         self.image_type = 'standard'
 
-        if self.img_reduced[0].shape[1] > 1: #todo not zero but actual selected image
+        self.Timepoint_Slider.setValue(0)
+        self.Timepoint_Slider.setEnabled(False)
+        # todo make that it doesn't crash when timepoint slider is not zero and switch to other image type
+        self.ZPosition_Slider.setValue(0)
+        self.ZPosition_Slider.setEnabled(False)
+
+        if self.img_reduced[self.ImageSelector.currentIndex()].shape[1] > 1:
             self.image_type = 'timelapse'
             print('timelapse!')
 
-            self.timelapse_frames = self.img_reduced[0].shape[1]
-            self.TimeSlider.setMaximum(self.timelapse_frames-1)
+            self.timelapse_frames = self.img_reduced[self.ImageSelector.currentIndex()].shape[1]
+            self.Timepoint_Slider.setMaximum(self.timelapse_frames-1)
+            self.Timepoint_Slider.setEnabled(True)
 
-        if self.img_reduced[0].shape[2] > 1:
+        if self.img_reduced[self.ImageSelector.currentIndex()].shape[2] > 1:
             self.image_type = 'z-stack'
             print('z-stack!')
 
-            self.zstack_slices = self.img_reduced[0].shape[2]
+            self.zstack_slices = self.img_reduced[self.ImageSelector.currentIndex()].shape[2]
             self.ZPosition_Slider.setMaximum(self.zstack_slices - 1)
+            self.ZPosition_Slider.setEnabled(True)
 
+        self.ImageType.setText(self.image_type)
 
         # self.channel = self.img[0][1]
         # print(self.img[0].shape)
@@ -178,7 +209,7 @@ class GUIFunctions():
         ic(self.PlotChannel.currentText())
         ic(self.ImageSelector.currentText())
         ic(self.ImageSelector.currentIndex())
-        ic(self.TimeSlider.sliderPosition())
+        ic(self.Timepoint_Slider.sliderPosition())
         # fig, axs = plt.subplots(len(self.img), 3, figsize=(15, 15))
         # # , facecolor='w', edgecolor='k')
         # fig.tight_layout(pad=2)
@@ -218,7 +249,7 @@ class GUIFunctions():
         ic(self.img_reduced[self.ImageSelector.currentIndex()].shape)
 
         # self.ax = self.PlotCanvas.figure.subplots()
-        self.ax.imshow(self.img_reduced[self.ImageSelector.currentIndex()][self.PlotChannel.currentIndex()][self.TimeSlider.sliderPosition()][self.ZPosition_Slider.sliderPosition()], cmap=self.CmapSelector.currentText())
+        self.ax.imshow(self.img_reduced[self.ImageSelector.currentIndex()][self.PlotChannel.currentIndex()][self.Timepoint_Slider.sliderPosition()][self.ZPosition_Slider.sliderPosition()], cmap=self.CmapSelector.currentText())
         self.ax.add_artist(scalebar)
         # self.ax.set_axis_off() somehow doesn't work
 
@@ -307,6 +338,10 @@ class qtGUI(QDialog, GUIFunctions):
         HDF5LoadButton = QPushButton('Load folder containing HDF5 files for analysis (faster)')
         HDF5LoadButton.clicked.connect(self.ChooseInputHDF5Folder)
 
+        self.MetadataWriteButton = QPushButton('write metadata to XML dict in source folder')
+        self.MetadataWriteButton.setEnabled(False)
+        self.MetadataWriteButton.clicked.connect(self.WriteMetadataToXML)
+
         # cziLoadButton.clicked.connect(self.PlotData)
         # cziLoadButton.clicked.connect(self.labelsetter)
 
@@ -316,6 +351,7 @@ class qtGUI(QDialog, GUIFunctions):
         layout.addWidget(cziLoadButton)
         layout.addWidget(HDF5LoadButton)
         layout.addWidget(self.FilePathLabel)
+        layout.addWidget(self.MetadataWriteButton)
 
         # layout.addWidget(self.FileShapeLabel)
 
@@ -369,8 +405,9 @@ class qtGUI(QDialog, GUIFunctions):
         self.ImageSelector = QComboBox()
         #self.ImageSelector.addItems(['0', '1'])
         # self.ImageSelector.currentIndexChanged.connect(self.LoadChannels(index=1))
-        self.ImageSelector.currentIndexChanged.connect(self.PlotImage)
         self.ImageSelector.currentIndexChanged.connect(self.LoadChannels)
+        self.ImageSelector.currentIndexChanged.connect(self.DetermineImageType)
+        self.ImageSelector.currentIndexChanged.connect(self.PlotImage)
 
         layout = QGridLayout()
         layout.addWidget(ImageSelector_Label, 0, 0)
@@ -409,13 +446,17 @@ class qtGUI(QDialog, GUIFunctions):
     def createPlotOptionBox(self):
         self.PlotOptionBox = QGroupBox('Plot Options')
 
+        ImageTypeLabel = QLabel('Image Type:')
+        self.ImageType = QLabel('')
+
+
         #todo display image type somewhere here
         #todo only show this if image is actually timelapse
         TimeSliderLabel = QLabel('timepoint')
-        self.TimeSlider = QSlider(Qt.Orientation.Horizontal, self)
-        self.TimeSlider.setTickInterval(1)
-        self.TimeSlider.valueChanged.connect(self.updateSliderLabel)
-        self.TimeSlider.valueChanged.connect(self.PlotImage)
+        self.Timepoint_Slider = QSlider(Qt.Orientation.Horizontal, self)
+        self.Timepoint_Slider.setTickInterval(1)
+        self.Timepoint_Slider.valueChanged.connect(self.updateSliderLabel)
+        self.Timepoint_Slider.valueChanged.connect(self.PlotImage)
         #todo set slider position to middle and also disp middle image
         self.TimeSliderTimepoint = QLabel()
 
@@ -427,13 +468,15 @@ class qtGUI(QDialog, GUIFunctions):
         self.ZStackSliderPosition = QLabel()
 
         layout = QGridLayout()
-        layout.addWidget(TimeSliderLabel, 0, 0)
-        layout.addWidget(self.TimeSlider, 0, 1)
-        layout.addWidget(self.TimeSliderTimepoint, 0, 2)
+        layout.addWidget(ImageTypeLabel, 0, 0)
+        layout.addWidget(self.ImageType, 0, 1)
+        layout.addWidget(TimeSliderLabel, 1, 0)
+        layout.addWidget(self.Timepoint_Slider, 1, 1)
+        layout.addWidget(self.TimeSliderTimepoint, 1, 2)
 
-        layout.addWidget(ZPositionSiderLabel, 1, 0)
-        layout.addWidget(self.ZPosition_Slider, 1, 1)
-        layout.addWidget(self.ZStackSliderPosition, 1, 2)
+        layout.addWidget(ZPositionSiderLabel, 2, 0)
+        layout.addWidget(self.ZPosition_Slider, 2, 1)
+        layout.addWidget(self.ZStackSliderPosition, 2, 2)
 
         self.PlotOptionBox.setLayout(layout)
 
