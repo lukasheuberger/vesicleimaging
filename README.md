@@ -14,6 +14,7 @@ It is currently under construction...
 
 ### misc
 
+- jupyter file templates
 - make file selection and handling easier
 - adapt algorithm detect inner and outer diameter
 - fix metadata load to incorporate all metadata (part is commented in imgfileutils.py)
