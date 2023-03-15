@@ -20,6 +20,7 @@ def plot_images(image_data: list,
                 img_metadata: list,
                 img_add_metadata: list,
                 saving: bool = True,
+                display: bool = True,
                 scalebar: bool = True,
                 scalebar_value: int = 50):
     """
@@ -108,8 +109,8 @@ def plot_images(image_data: list,
                     plt.savefig(output_filename, dpi=300)
                     # ,image[channel],cmap='gray')
                     print('image saved: ', output_filename)
-
-                plt.show()
+                if display:
+                    plt.show()
 
 
 def detect_circles(image_data: list,
