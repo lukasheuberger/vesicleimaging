@@ -249,6 +249,9 @@ class GUIFunctions():
 
         self.PlotCanvas.draw()
 
+    def PlotDetectedCircles(self):
+        pass
+
         # subfig_counter = 0
         # filename_counter = 0
 
