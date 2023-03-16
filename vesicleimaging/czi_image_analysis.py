@@ -176,7 +176,7 @@ def detect_circles(image_data: list,
             img = handler.convert8bit(img)
 
         detection_img = img[detection_channel]
-        # ic(detection_img.shape)
+        ic(detection_img.shape)
 
         timepoint_circles = []
 
