@@ -250,7 +250,8 @@ class GUIFunctions():
         self.PlotCanvas.draw()
 
     def PlotDetectedCircles(self):
-        pass
+        plt.imshow(self.output_circle_img)
+        plt.show()
 
         # subfig_counter = 0
         # filename_counter = 0
@@ -288,12 +289,15 @@ class GUIFunctions():
 
         #todo make this work for multiple images
 
-        self.detected_circles = cia.detect_circles([self.currentImage], [self.metadata[self.ImageSelector.currentIndex()]],
+        self.detected_circles, self.output_circle_img = cia.detect_circles([self.currentImage], [self.metadata[self.ImageSelector.currentIndex()]],
                                           param1_array=self.Param1_Slider.sliderPosition(),
                                           param2_array=self.Param2_Slider.sliderPosition(),
                                           minmax=[int(self.SizeMin.text()), int(self.SizeMax.text())],
                                           display_channel=self.DetectDisplayChannel.currentIndex(),
-                                          detection_channel=self.DetectDetectChannel.currentIndex())
+                                          detection_channel=self.DetectDetectChannel.currentIndex(),
+                                                                           plot=False, return_image=True)
+
+        self.PlotDetectedCircles()
 
 
 class qtGUI(QDialog, GUIFunctions):
