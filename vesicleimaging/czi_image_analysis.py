@@ -120,6 +120,8 @@ def detect_circles(image_data: list,
                    minmax: list,
                    display_channel: int,
                    detection_channel: int,
+                   plot:bool = True,
+                   return_image: bool = False,
                    hough_saving: bool = False,
                    debug: bool = False):
     """
@@ -227,12 +229,12 @@ def detect_circles(image_data: list,
 
                 if debug:
                     ic(z_circles)
-
-                fig = plt.figure(figsize=(5, 5), frameon=False)
-                fig.tight_layout(pad=0)
-                plt.imshow(output_img)  # , vmin=0, vmax=20)
-                plt.axis('off')
-                plt.show()
+                if plot:
+                    fig = plt.figure(figsize=(5, 5), frameon=False)
+                    fig.tight_layout(pad=0)
+                    plt.imshow(output_img)  # , vmin=0, vmax=20)
+                    plt.axis('off')
+                    plt.show()
 
                 if hough_saving:
                     try:
@@ -255,7 +257,10 @@ def detect_circles(image_data: list,
         circles.append(timepoint_circles)
 
     # ic(circles)
-    return circles
+    if return_image:
+        return circles, output_img
+    else:
+        return circles
 
 
 def measure_circle_intensity(image_data: list,
