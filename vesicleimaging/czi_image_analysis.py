@@ -95,16 +95,22 @@ def plot_images(image_data: list,
                     plt.gca().add_artist(scalebar)
 
                 if saving:
+                    ic(os.getcwd())
+                    new_folder_path = os.path.join(os.getcwd(), 'analysis')
                     try:
-                        new_folder_path = os.path.join(os.getcwd(), 'analysis')
                         ic(new_folder_path)
                         os.mkdir(new_folder_path)
                         print('created new analysis folder: ', new_folder_path)
                     except (FileExistsError, FileNotFoundError):
                         pass
 
-                    output_filename = ''.join([os.getcwd(), '/analysis/',
+                    try:
+                        output_filename = ''.join([os.getcwd(), '/analysis/',
                                                title_filename, '.png'])
+                    except OSError:
+                        os.mkdir(new_folder_path)
+                        output_filename = ''.join([os.getcwd(), '/analysis/',
+                                                   title_filename, '.png'])
 
                     plt.savefig(output_filename, dpi=300)
                     # ,image[channel],cmap='gray')
@@ -189,9 +195,13 @@ def detect_circles(image_data: list,
 
                 output_img = img[display_channel]\
                     [timepoint_index][zstack_index].copy()
+
+                # Apply Gaussian blur to reduce noise
+                gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
+                # plt.imshow(gray_blurred)
                 # ic(output_img.shape)
                 try:
-                    circle = cv2.HoughCircles(zstack_img, cv2.HOUGH_GRADIENT,
+                    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
                                           dp=2,
                                           minDist=minmax[1],
                                           minRadius=minmax[0],
@@ -199,7 +209,7 @@ def detect_circles(image_data: list,
                                           param1=param1_array[index],
                                           param2=param2_array[index])
                 except TypeError:
-                    circle = cv2.HoughCircles(zstack_img, cv2.HOUGH_GRADIENT,
+                    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
                                               dp=2,
                                               minDist=minmax[1],
                                               minRadius=minmax[0],
@@ -220,8 +230,8 @@ def detect_circles(image_data: list,
                         # corresponding to the center of the circle
                         cv2.circle(output_img, (x_coord, y_coord),
                                    radius, (255, 255, 255), 2)  # x,y,radius
-                        cv2.rectangle(output_img, (x_coord - 2, y_coord - 2),
-                                      (x_coord + 2, y_coord + 2),
+                        cv2.rectangle(output_img, (x_coord - 5, y_coord - 5),
+                                      (x_coord + 5, y_coord + 5),
                                       (255, 255, 255), -1)
                     z_circles.append(circle)
 
@@ -263,7 +273,8 @@ def measure_circle_intensity(image_data: list,
                              circles: list,
                              measurement_channel: int,
                              distance_from_border: int = 10,
-                             excel_saving: bool = True):
+                             excel_saving: bool = True,
+                             filenames: list = None):
     """
     The measure_circle_intensity function takes a list of
     images and circles as input.
@@ -300,11 +311,16 @@ def measure_circle_intensity(image_data: list,
     intensity_per_circle = []
 
     for index, img in enumerate(image_data):
-        try:
-            filename = image_metadata[index][0]['Filename']
-        except KeyError:
-            filename = image_metadata[index]['Filename']
+        if filenames is not None:
+            filename = filenames[index]
+        else:
+            try:
+                filename = image_metadata[index][0]['Filename']
+            except KeyError:
+                filename = image_metadata[index]['Filename']
+
         print(f'file {index + 1} ({filename}) is being processed...')
+
 
         if img.dtype == 'uint16':
             img = handler.convert8bit(img)
@@ -360,7 +376,8 @@ def measure_circle_intensity(image_data: list,
                                         pixel_val = zstack_img[y_coord][x_coord]
                                         pixels_in_circle.append(pixel_val)
                                 except IndexError:
-                                    print('skipping this circle')
+                                    pass
+                                    # print('skipping this circle')
                                     # todo fix this!
 
                         average_per_circle.append(np.mean(pixels_in_circle))
@@ -374,13 +391,15 @@ def measure_circle_intensity(image_data: list,
                     # print('average: ', np.mean(pixels_in_circle))
                     # print('stdev: ', np.std(pixels_in_circle))
                     # print('--------------------')
-
-                    try:
-                        filename = image_metadata[index][0] \
-                            ['Filename'].replace('.czi', '')
-                    except KeyError:
-                        filename = image_metadata[index] \
-                            ['Filename'].replace('.czi', '')
+                    if filenames is not None: # combine this with the other if
+                        filename = filename.replace('.czi', '')
+                    else:
+                        try:
+                            filename = image_metadata[index][0] \
+                                ['Filename'].replace('.czi', '')
+                        except KeyError:
+                            filename = image_metadata[index] \
+                                ['Filename'].replace('.czi', '')
 
                     results_df = results_df.append({
                         'filename': filename,
