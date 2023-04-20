@@ -115,6 +115,7 @@ def load_image_data(files: list,
     Returns:
         Three values: all_img_data, all_metadata, and all_additional metadata
     """
+    # todo make that this only takes czi iamges
 
     all_img_data = []
     all_metadata = []
