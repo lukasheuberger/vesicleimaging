@@ -152,6 +152,7 @@ def detect_circles(image_data: list,
     # this is all a mess and needs to be fixed
     # todo make params so both arrays and ints work
     # todo make user be able to chose between radius in um and pixels
+    # todo make auto-optimization to improve found circles
     # see https://docs.opencv.org/
     # 2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
 
@@ -251,6 +252,9 @@ def detect_circles(image_data: list,
                         os.mkdir('analysis/HoughCircles')
                     except FileExistsError:
                         pass
+                    except FileNotFoundError:
+                        os.mkdir('analysis')
+                        os.mkdir('analysis/HoughCircles')
                     # todo check if this works with this
                     #  zero or needs try except to work
                     temp_filename = image_metadata[index][0]\
@@ -271,6 +275,48 @@ def detect_circles(image_data: list,
         return circles, output_img
     else:
         return circles
+
+def plot_histogram(circles: list,
+                    add_metadata: list, bins: float = 10):
+    # todo make possible to choose to plot general histogram or per condition
+    # todo convert to um instead of pixels
+    # todo import formatLH
+
+    ic(len(circles[:][:][:][:])) #todo doesnt work
+
+    radii = []
+
+    for outer_list in circles:
+        for inner_list in outer_list:
+            for arr in inner_list:
+                for list in arr:
+                    # ic(list)
+                    radii.append(list[2])
+
+    scale_factor = float(handler.disp_scaling(add_metadata[0])[0]) # assume it doesn't change during experiment
+    ic(scale_factor)
+
+    ic(type(scale_factor))
+    ic(type(radii[0]))
+
+    radii = [2 * radius * scale_factor * 10e5 for radius in radii] # x 10^5 for units in um
+
+    ic(len(radii))
+
+
+    plt.figure()
+    _, bins, _ = plt.hist(radii, bins=bins, color='black')
+    xmin = min(radii) - 5
+    xmax = max(radii) + 5
+    plt.xlim(xmin, xmax)
+    # plt.text(min(diameters)-4,0.1, r'n = %s'%(len(diameters)))#, fontdict = font)
+    plt.xlabel('size [µm]')
+    plt.ylabel('counts')
+    #plt.minorticks_off()
+    plt.show()
+
+
+    return radii
 
 
 def measure_circle_intensity(image_data: list,
@@ -306,6 +352,8 @@ def measure_circle_intensity(image_data: list,
 
     """
 
+    # todo check if number of guvs counted is equal to number of guvs in circles array
+
     if isinstance(image_data, list) is False:
         raise ValueError('image_data must be a list')
 
@@ -316,6 +364,8 @@ def measure_circle_intensity(image_data: list,
     intensity_per_circle = []
 
     for index, img in enumerate(image_data):
+        #
+        # ic(index, img.shape)
         if filenames is not None:
             filename = filenames[index]
         else:
@@ -339,86 +389,90 @@ def measure_circle_intensity(image_data: list,
             # ic(timepoint_index, timepoint_img.shape)
 
             for zstack_index, zstack_img in enumerate(timepoint_img):
-                # print(zstack_index, zstack_img.shape)
+                # ic(zstack_index, zstack_img.shape)
 
                 # if circles[index] is not None: # maybe only [index] here
-                # print(circles[index][timepoint_index][zstack_index])
 
-                try:
-                    measurement_circles = circles[index]\
-                        [timepoint_index][zstack_index]
-                    print(len(measurement_circles))
-                    #ic(measurement_circles)
+                #print(circles[index][timepoint_index])
+                if circles[index][timepoint_index] == []:
+                    print('skipping this image')
+                else:
 
-                    average_per_circle = []
-                    pixels_in_circle = []
+                    try:
+                        measurement_circles = circles[index]\
+                            [timepoint_index][zstack_index]
+                        print(f'Number of circles measured in this image {len(measurement_circles)}')
+                        #ic(measurement_circles)
 
-                    for circle in measurement_circles:
-                        # ic(circle)
-                        x_0 = circle[0]
-                        y_0 = circle[1]
-                        radius_px = circle[2]
-                        # if radius is adapted to um
-                        # this needs to be changed too...
-                        # ic(x_0, y_0, radius_px)
+                        average_per_circle = []
+                        pixels_in_circle = []
 
-                        # make radius slighly smaller so border is not in range
-                        measurement_radius = radius_px - distance_from_border
-                        # ic(measurement_radius)
+                        for circle in measurement_circles:
+                            # ic(circle)
+                            x_0 = circle[0]
+                            y_0 = circle[1]
+                            radius_px = circle[2]
+                            # if radius is adapted to um
+                            # this needs to be changed too...
+                            # ic(x_0, y_0, radius_px)
 
-                        # iterate over all pixels in circle
-                        for x_coord in range(x_0 - measurement_radius,
-                                             x_0 + measurement_radius):
-                            for y_coord in range(y_0 - measurement_radius,
-                                                 y_0 + measurement_radius):
-                                delta_x = x_coord - x_0
-                                delta_y = y_coord - y_0
+                            # make radius slighly smaller so border is not in range
+                            measurement_radius = radius_px - distance_from_border
+                            # ic(measurement_radius)
 
-                                distance_squared = delta_x ** 2 + delta_y ** 2
-                                try:
-                                    if distance_squared <= \
-                                            (measurement_radius ** 2):
-                                        pixel_val = zstack_img[y_coord][x_coord]
-                                        pixels_in_circle.append(pixel_val)
-                                except IndexError:
-                                    pass
-                                    # print('skipping this circle')
-                                    # todo fix this!
+                            # iterate over all pixels in circle
+                            for x_coord in range(x_0 - measurement_radius,
+                                                 x_0 + measurement_radius):
+                                for y_coord in range(y_0 - measurement_radius,
+                                                     y_0 + measurement_radius):
+                                    delta_x = x_coord - x_0
+                                    delta_y = y_coord - y_0
 
-                        average_per_circle.append(np.mean(pixels_in_circle))
+                                    distance_squared = delta_x ** 2 + delta_y ** 2
+                                    try:
+                                        if distance_squared <= \
+                                                (measurement_radius ** 2):
+                                            pixel_val = zstack_img[y_coord][x_coord]
+                                            pixels_in_circle.append(pixel_val)
+                                    except IndexError:
+                                        pass
+                                        # print('skipping this circle')
+                                        # todo fix this!
 
-                    circles_per_image.append(average_per_circle)
+                            average_per_circle.append(np.mean(pixels_in_circle))
 
-                    print('no. of GUVs counted: ', len(measurement_circles))
-                    # print('number of pixels: ', len(pixels_in_circle))
-                    # print('min: ', np.min(pixels_in_circle))
-                    # print('max: ', np.max(pixels_in_circle))
-                    # print('average: ', np.mean(pixels_in_circle))
-                    # print('stdev: ', np.std(pixels_in_circle))
-                    # print('--------------------')
-                    if filenames is not None: # combine this with the other if
-                        filename = filename.replace('.czi', '')
-                    else:
-                        try:
-                            filename = image_metadata[index][0] \
-                                ['Filename'].replace('.czi', '')
-                        except KeyError:
-                            filename = image_metadata[index] \
-                                ['Filename'].replace('.czi', '')
+                        circles_per_image.append(average_per_circle)
 
-                    results_df = results_df.append({
-                        'filename': filename,
-                        'image': index,
-                        'timepoint': timepoint_index,
-                        'z_level': zstack_index,
-                        'no_GUVs': len(measurement_circles),
-                        'average': np.mean(pixels_in_circle),
-                        'min': np.min(pixels_in_circle),
-                        'max': np.max(pixels_in_circle),
-                        'stdev': np.std(pixels_in_circle)
-                    }, ignore_index=True)
-                except TypeError:
-                    print('skipped this image, no circles found')
+                        print('no. of GUVs counted: ', len(measurement_circles))
+                        # print('number of pixels: ', len(pixels_in_circle))
+                        # print('min: ', np.min(pixels_in_circle))
+                        # print('max: ', np.max(pixels_in_circle))
+                        # print('average: ', np.mean(pixels_in_circle))
+                        # print('stdev: ', np.std(pixels_in_circle))
+                        # print('--------------------')
+                        if filenames is not None: # combine this with the other if
+                            filename = filename.replace('.czi', '')
+                        else:
+                            try:
+                                filename = image_metadata[index][0] \
+                                    ['Filename'].replace('.czi', '')
+                            except KeyError:
+                                filename = image_metadata[index] \
+                                    ['Filename'].replace('.czi', '')
+
+                        results_df = results_df.append({
+                            'filename': filename,
+                            'image': index,
+                            'timepoint': timepoint_index,
+                            'z_level': zstack_index,
+                            'no_GUVs': len(measurement_circles),
+                            'average': np.mean(pixels_in_circle),
+                            'min': np.min(pixels_in_circle),
+                            'max': np.max(pixels_in_circle),
+                            'stdev': np.std(pixels_in_circle)
+                        }, ignore_index=True)
+                    except TypeError:
+                        print('skipped this image, no circles found')
 
         intensity_per_circle.append(circles_per_image)
         print('-----------------------------')
