@@ -484,6 +484,29 @@ def load_h5_data(path: str):
 
     return image_data, metadata, add_metadata
 
+def max_projection(image_data: list[int]):
+    """
+    The max_projection function takes in a list of images and
+    returns a single image that is the maximum projection of
+    all the images in the list.
+    Args:
+        image_data:list[int]: Pass a list of images
+    Returns:
+        A single image that is the maximum projection of all the images
+        in the list
+    """
+    # todo improve this
+    new_image = []
+    ic(image_data.shape)
+    for channel_index, channel_img in enumerate(image_data):
+        ic(channel_index, channel_img.shape)
+        for timepoint_index, timepoint in enumerate(channel_img):
+            ic(timepoint_index, timepoint.shape)
+            max_projection = np.max(timepoint, axis=0)
+            ic(max_projection.shape)
+        new_image.append(max_projection)
+    return new_image
+
 
 def test_all_functions(path):
     """
