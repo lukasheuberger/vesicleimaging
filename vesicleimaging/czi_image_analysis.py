@@ -8,6 +8,8 @@ from icecream import ic
 import pandas as pd
 from matplotlib_scalebar.scalebar import ScaleBar
 import czi_image_handling as handler
+from numba import njit
+import cProfile
 
 # todo make that this is all a class and give the variables
 #  to the image instance
@@ -16,6 +18,7 @@ import czi_image_handling as handler
 #  extract later to recude no. of inputs
 
 # todo make possible to change cmap
+
 def plot_images(image_data: list,
                 img_metadata: list,
                 img_add_metadata: list,
@@ -113,10 +116,12 @@ def plot_images(image_data: list,
                                                    title_filename, '.png'])
 
                     plt.savefig(output_filename, dpi=300)
+                    plt.close()
                     # ,image[channel],cmap='gray')
                     print('image saved: ', output_filename)
                 if display:
                     plt.show()
+                    plt.close()
 
 
 def detect_circles(image_data: list,
@@ -155,6 +160,7 @@ def detect_circles(image_data: list,
     # todo make auto-optimization to improve found circles
     # see https://docs.opencv.org/
     # 2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
+    # todo for zstack: don't always recalculate but use existing positions
 
     # if circles.all() == [None]:
     print('the bigger param1, the fewer circles may be detected')
@@ -246,6 +252,7 @@ def detect_circles(image_data: list,
                     plt.imshow(output_img)  # , vmin=0, vmax=20)
                     plt.axis('off')
                     plt.show()
+                    plt.close()
 
                 if hough_saving:
                     try:
@@ -319,6 +326,45 @@ def plot_histogram(circles: list,
     return radii
 
 
+@njit
+def custom_meshgrid(x_min, x_max, y_min, y_max):
+    xs = np.empty((y_max - y_min, x_max - x_min), dtype=np.int32)
+    ys = np.empty((y_max - y_min, x_max - x_min), dtype=np.int32)
+
+    for y in range(y_min, y_max):
+        for x in range(x_min, x_max):
+            xs[y - y_min, x - x_min] = x
+            ys[y - y_min, x - x_min] = y
+
+    return ys, xs
+
+@njit
+def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_border):
+    average_per_circle = []
+    for circle in measurement_circles:
+
+        x_0, y_0, radius_px = circle
+        measurement_radius = radius_px - distance_from_border
+
+        x_min, x_max = x_0 - measurement_radius, x_0 + measurement_radius
+        y_min, y_max = y_0 - measurement_radius, y_0 + measurement_radius
+
+        ys, xs = custom_meshgrid(x_min, x_max, y_min, y_max)
+        dist_squared = (xs - x_0)**2 + (ys - y_0)**2
+        mask = (dist_squared <= measurement_radius**2) & (xs >= 0) & (ys >= 0) & (xs < zstack_img.shape[1]) & (ys < zstack_img.shape[0])
+
+        masked_ys = ys.ravel()[mask.ravel()]
+        masked_xs = xs.ravel()[mask.ravel()]
+
+        pixels_in_circle = np.empty_like(masked_ys, dtype=zstack_img.dtype)
+        for i in range(masked_ys.size):
+            pixels_in_circle[i] = zstack_img[masked_ys[i], masked_xs[i]]
+
+        average_per_circle.append(np.mean(pixels_in_circle))
+
+    return average_per_circle, pixels_in_circle
+
+
 def measure_circle_intensity(image_data: list,
                              image_metadata: list,
                              circles: list,
@@ -389,7 +435,7 @@ def measure_circle_intensity(image_data: list,
             # ic(timepoint_index, timepoint_img.shape)
 
             for zstack_index, zstack_img in enumerate(timepoint_img):
-                # ic(zstack_index, zstack_img.shape)
+                # print(f'zstack_index: {zstack_index}, zstack_img.shape: {zstack_img.shape}')
 
                 # if circles[index] is not None: # maybe only [index] here
 
@@ -397,53 +443,55 @@ def measure_circle_intensity(image_data: list,
                 if circles[index][timepoint_index] == []:
                     print('skipping this image')
                 else:
-
                     try:
                         measurement_circles = circles[index]\
                             [timepoint_index][zstack_index]
                         print(f'Number of circles measured in this image {len(measurement_circles)}')
-                        #ic(measurement_circles)
+                        # print(measurement_circles)
+                        # measurement_radius = radius_px - distance_from_border
+                        average_per_circle, pixels_in_circle = calculate_average_per_circle(zstack_img, measurement_circles,
+                                                                         distance_from_border)
+                        # todo check if this is actually the right value here
+                        # average_per_circle = []
+                        # pixels_in_circle = []
 
-                        average_per_circle = []
-                        pixels_in_circle = []
-
-                        for circle in measurement_circles:
-                            # ic(circle)
-                            x_0 = circle[0]
-                            y_0 = circle[1]
-                            radius_px = circle[2]
-                            # if radius is adapted to um
-                            # this needs to be changed too...
-                            # ic(x_0, y_0, radius_px)
-
-                            # make radius slighly smaller so border is not in range
-                            measurement_radius = radius_px - distance_from_border
-                            # ic(measurement_radius)
-
-                            # iterate over all pixels in circle
-                            for x_coord in range(x_0 - measurement_radius,
-                                                 x_0 + measurement_radius):
-                                for y_coord in range(y_0 - measurement_radius,
-                                                     y_0 + measurement_radius):
-                                    delta_x = x_coord - x_0
-                                    delta_y = y_coord - y_0
-
-                                    distance_squared = delta_x ** 2 + delta_y ** 2
-                                    try:
-                                        if distance_squared <= \
-                                                (measurement_radius ** 2):
-                                            pixel_val = zstack_img[y_coord][x_coord]
-                                            pixels_in_circle.append(pixel_val)
-                                    except IndexError:
-                                        pass
-                                        # print('skipping this circle')
-                                        # todo fix this!
-
-                            average_per_circle.append(np.mean(pixels_in_circle))
+                        # for circle in measurement_circles:
+                        #     # ic(circle)
+                        #     x_0 = circle[0]
+                        #     y_0 = circle[1]
+                        #     radius_px = circle[2]
+                        #     # if radius is adapted to um
+                        #     # this needs to be changed too...
+                        #     # ic(x_0, y_0, radius_px)
+                        #
+                        #     # make radius slighly smaller so border is not in range
+                        #     measurement_radius = radius_px - distance_from_border
+                        #     # ic(measurement_radius)
+                        #
+                        #     # iterate over all pixels in circle
+                        #     for x_coord in range(x_0 - measurement_radius,
+                        #                          x_0 + measurement_radius):
+                        #         for y_coord in range(y_0 - measurement_radius,
+                        #                              y_0 + measurement_radius):
+                        #             delta_x = x_coord - x_0
+                        #             delta_y = y_coord - y_0
+                        #
+                        #             distance_squared = delta_x ** 2 + delta_y ** 2
+                        #             try:
+                        #                 if distance_squared <= \
+                        #                         (measurement_radius ** 2):
+                        #                     pixel_val = zstack_img[y_coord][x_coord]
+                        #                     pixels_in_circle.append(pixel_val)
+                        #             except IndexError:
+                        #                 pass
+                        #                 # print('skipping this circle')
+                        #                 # todo fix this!
+                        #
+                        #     average_per_circle.append(np.mean(pixels_in_circle))
 
                         circles_per_image.append(average_per_circle)
 
-                        print('no. of GUVs counted: ', len(measurement_circles))
+                        # print('no. of GUVs counted: ', len(measurement_circles))
                         # print('number of pixels: ', len(pixels_in_circle))
                         # print('min: ', np.min(pixels_in_circle))
                         # print('max: ', np.max(pixels_in_circle))
@@ -471,7 +519,7 @@ def measure_circle_intensity(image_data: list,
                             'max': np.max(pixels_in_circle),
                             'stdev': np.std(pixels_in_circle)
                         }, ignore_index=True)
-                    except TypeError:
+                    except (TypeError, IndexError):
                         print('skipped this image, no circles found')
 
         intensity_per_circle.append(circles_per_image)
@@ -523,13 +571,20 @@ def test_all_functions(path):
                                       display_channel=display_channel,
                                       detection_channel=detection_channel)
 
-    measurement_channel = 0
-    df, circles = measure_circle_intensity(test_data, test_metadata, detected_circles,
-                                           measurement_channel, excel_saving=False)
+    #measurement_channel = 0
+    #df, circles = measure_circle_intensity(test_data, test_metadata, detected_circles,
+                                           # measurement_channel, excel_saving=False)
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')
     DATA_PATH = '../test_data/general'
 
+    # profiler = cProfile.Profile()
+    # profiler.enable()
+
+
     test_all_functions(DATA_PATH)
+
+    # profiler.disable()
+    # profiler.print_stats(sort='cumulative')
 # todo make all this in one file that just contains all functions from the other files
