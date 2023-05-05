@@ -246,45 +246,6 @@ def detect_circles(image_data: list,
 
                 circle, output_img, _ = process_image(zstack_img, img[display_channel][timepoint_index][zstack_index], detection_channel, minmax, param1, param2)
 
-                # output_img = img[display_channel]\
-                #     [timepoint_index][zstack_index].copy()
-                #
-                # # Apply Gaussian blur to reduce noise
-                # gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
-                # # plt.imshow(gray_blurred)
-                # # ic(output_img.shape)
-                # try:
-                #     circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
-                #                           dp=2,
-                #                           minDist=minmax[1],
-                #                           minRadius=minmax[0],
-                #                           maxRadius=minmax[1],
-                #                           param1=param1_array[index],
-                #                           param2=param2_array[index])
-                # except TypeError:
-                #     circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
-                #                               dp=2,
-                #                               minDist=minmax[1],
-                #                               minRadius=minmax[0],
-                #                               maxRadius=minmax[1],
-                #                               param1=param1_array,
-                #                               param2=param2_array)
-
-                # if debug:
-                #    ic(circle)
-
-                # if circle is not None:
-                #     # convert the (x, y) coords and radius to integers
-                #     circle = np.round(circle[0, :]).astype("int")
-                #     # loop over the (x, y) coords and radius of circles
-                #     for (x_coord, y_coord, radius) in circle:
-                #         # draw circle in output image and draw a rectangle
-                #         # corresponding to the center of the circle
-                #         cv2.circle(output_img, (x_coord, y_coord),
-                #                    radius, (255, 255, 255), 2)  # x,y,radius
-                #         cv2.rectangle(output_img, (x_coord - 5, y_coord - 5),
-                #                       (x_coord + 5, y_coord + 5),
-                #                       (255, 255, 255), -1)
                 z_circles.append(circle)
 
                 if debug:

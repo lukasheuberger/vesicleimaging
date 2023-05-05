@@ -9,10 +9,10 @@ import h5py
 import numpy as np
 from icecream import ic
 from skimage import img_as_ubyte
+import cProfile
 
 import imgfileutils as imf
 import concurrent.futures
-
 
 
 def get_files(path: str):
@@ -122,6 +122,8 @@ def load_image_data(files: list, write_metadata: bool = False):
     all_metadata = []
     all_add_metadata = []
 
+    files = [file for file in files if file.endswith('.czi')]
+
     def process_file(file):
         print(file)
         img_data, metadata, add_metadata = imf.get_array_czi(file, return_addmd=False)
@@ -160,11 +162,12 @@ def load_image_data_old(files: list,
     Returns:
         Three values: all_img_data, all_metadata, and all_additional metadata
     """
-    # todo make that this only takes czi iamges
 
     all_img_data = []
     all_metadata = []
     all_add_metadata = []
+
+    ic(files)
 
     for file in files:
         # get the array and the metadata
@@ -200,25 +203,9 @@ def extract_channels(img_data: list[int]):
     extracted_channels = []
     for image in img_data:
         try:
-            # ic(image.shape)
             extracted_channels.append(image[0, 0, :, :, :, :, :])
         except (AttributeError, TypeError):
-            # ic(image[0].shape)
             extracted_channels.append(image[0][0, 0, :, :, :, :, :])
-        # if img_type == 'zstack':
-        #     extracted_channels.append(image[0, 0, :, 0, :, :, :])
-        # elif img_type == 'zstack':
-        #     extracted_channels.append(image[0, 0, :, 0, :, :, :])
-        # elif img_type == 'image':
-        #     extracted_channels.append(image[0, 0, 0, 0, :, :, :])
-        # elif img_type == 'timelapse':
-        #     # check if timelapse needs to be reduced to certain channels
-        #     if channels is not None:
-        #         extracted_channels.append(image[0, 0, channels, :, 0, :, :])
-        #     else:
-        #         extracted_channels.append(image[0, 0, :, :, 0, :, :])
-        # else:
-        #     raise ValueError(f'unknown image type: {img_type}')
 
     return extracted_channels
 
@@ -541,6 +528,7 @@ def max_projection(image_data: list[int]):
         in the list
     """
     # todo improve this
+    # todo add this to tests
     new_image = []
     ic(image_data.shape)
     for channel_index, channel_img in enumerate(image_data):
@@ -593,4 +581,11 @@ if __name__ == '__main__':
     # path = input('path to data folder: ')
     DATA_PATH = '../test_data/general'
 
+    # profiler = cProfile.Profile()
+    # profiler.enable()
+
     test_all_functions(DATA_PATH)
+
+    # profiler.disable()
+    # profiler.print_stats(sort='cumulative')
+
