@@ -10,6 +10,8 @@ from matplotlib_scalebar.scalebar import ScaleBar
 import czi_image_handling as handler
 from numba import njit
 import cProfile
+from skimage import filters, feature, draw
+from scipy.ndimage import gaussian_filter
 
 # todo make that this is all a class and give the variables
 #  to the image instance
@@ -124,6 +126,43 @@ def plot_images(image_data: list,
                     plt.close()
 
 
+def process_image(zstack_img, display_channel, detection_channel, minmax, param1, param2):
+    z_circles = []
+    output_img = display_channel.copy()#img[display_channel] \ #todo rename, this is not correct
+        #[timepoint_index][zstack_index].copy()
+
+    # Apply Gaussian blur to reduce noise
+    gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
+    # plt.imshow(gray_blurred)
+    # ic(output_img.shape)
+    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
+                                  dp=2,
+                                  minDist=minmax[1],
+                                  minRadius=minmax[0],
+                                  maxRadius=minmax[1],
+                                  param1=param1,
+                                  param2=param2)
+    # todo make that the drawing is only if it's also plotted
+
+    if circle is not None:
+        # convert the (x, y) coords and radius to integers
+        circle = np.round(circle[0, :]).astype("int")
+        # loop over the (x, y) coords and radius of circles
+        for (x_coord, y_coord, radius) in circle:
+            # draw circle in output image and draw a rectangle
+            # corresponding to the center of the circle
+            cv2.circle(output_img, (x_coord, y_coord),
+                       radius, (255, 255, 255), 2)  # x,y,radius
+            cv2.rectangle(output_img, (x_coord - 5, y_coord - 5),
+                          (x_coord + 5, y_coord + 5),
+                          (255, 255, 255), -1)
+        z_circles.append(circle)
+
+        return circle, output_img, z_circles
+    else:
+        return None, None, None
+
+
 def detect_circles(image_data: list,
                    image_metadata: list,
                    param1_array: list,
@@ -202,50 +241,55 @@ def detect_circles(image_data: list,
             for zstack_index, zstack_img in enumerate(timepoint_img):
                 # ic(zstack_index, zstack_img.shape)
 
-                output_img = img[display_channel]\
-                    [timepoint_index][zstack_index].copy()
+                param1 = param1_array[index] if isinstance(param1_array, list) else param1_array
+                param2 = param2_array[index] if isinstance(param2_array, list) else param2_array
 
-                # Apply Gaussian blur to reduce noise
-                gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
-                # plt.imshow(gray_blurred)
-                # ic(output_img.shape)
-                try:
-                    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
-                                          dp=2,
-                                          minDist=minmax[1],
-                                          minRadius=minmax[0],
-                                          maxRadius=minmax[1],
-                                          param1=param1_array[index],
-                                          param2=param2_array[index])
-                except TypeError:
-                    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
-                                              dp=2,
-                                              minDist=minmax[1],
-                                              minRadius=minmax[0],
-                                              maxRadius=minmax[1],
-                                              param1=param1_array,
-                                              param2=param2_array)
-                # todo make that params can be both arrays and single values
+                circle, output_img, _ = process_image(zstack_img, img[display_channel][timepoint_index][zstack_index], detection_channel, minmax, param1, param2)
 
-                if debug:
-                    ic(circle)
+                # output_img = img[display_channel]\
+                #     [timepoint_index][zstack_index].copy()
+                #
+                # # Apply Gaussian blur to reduce noise
+                # gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
+                # # plt.imshow(gray_blurred)
+                # # ic(output_img.shape)
+                # try:
+                #     circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
+                #                           dp=2,
+                #                           minDist=minmax[1],
+                #                           minRadius=minmax[0],
+                #                           maxRadius=minmax[1],
+                #                           param1=param1_array[index],
+                #                           param2=param2_array[index])
+                # except TypeError:
+                #     circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
+                #                               dp=2,
+                #                               minDist=minmax[1],
+                #                               minRadius=minmax[0],
+                #                               maxRadius=minmax[1],
+                #                               param1=param1_array,
+                #                               param2=param2_array)
 
-                if circle is not None:
-                    # convert the (x, y) coords and radius to integers
-                    circle = np.round(circle[0, :]).astype("int")
-                    # loop over the (x, y) coords and radius of circles
-                    for (x_coord, y_coord, radius) in circle:
-                        # draw circle in output image and draw a rectangle
-                        # corresponding to the center of the circle
-                        cv2.circle(output_img, (x_coord, y_coord),
-                                   radius, (255, 255, 255), 2)  # x,y,radius
-                        cv2.rectangle(output_img, (x_coord - 5, y_coord - 5),
-                                      (x_coord + 5, y_coord + 5),
-                                      (255, 255, 255), -1)
-                    z_circles.append(circle)
+                # if debug:
+                #    ic(circle)
+
+                # if circle is not None:
+                #     # convert the (x, y) coords and radius to integers
+                #     circle = np.round(circle[0, :]).astype("int")
+                #     # loop over the (x, y) coords and radius of circles
+                #     for (x_coord, y_coord, radius) in circle:
+                #         # draw circle in output image and draw a rectangle
+                #         # corresponding to the center of the circle
+                #         cv2.circle(output_img, (x_coord, y_coord),
+                #                    radius, (255, 255, 255), 2)  # x,y,radius
+                #         cv2.rectangle(output_img, (x_coord - 5, y_coord - 5),
+                #                       (x_coord + 5, y_coord + 5),
+                #                       (255, 255, 255), -1)
+                z_circles.append(circle)
 
                 if debug:
                     ic(z_circles)
+
                 if plot:
                     fig = plt.figure(figsize=(5, 5), frameon=False)
                     fig.tight_layout(pad=0)
@@ -571,9 +615,9 @@ def test_all_functions(path):
                                       display_channel=display_channel,
                                       detection_channel=detection_channel)
 
-    #measurement_channel = 0
-    #df, circles = measure_circle_intensity(test_data, test_metadata, detected_circles,
-                                           # measurement_channel, excel_saving=False)
+    measurement_channel = 0
+    df, circles = measure_circle_intensity(test_data, test_metadata, detected_circles,
+                                            measurement_channel, excel_saving=False)
 
 if __name__ == '__main__':
     # path = input('path to data folder: ')

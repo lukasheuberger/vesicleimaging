@@ -11,6 +11,8 @@ from icecream import ic
 from skimage import img_as_ubyte
 
 import imgfileutils as imf
+import concurrent.futures
+
 
 
 def get_files(path: str):
@@ -98,7 +100,50 @@ def write_metadata_xml(path: str,
         print('Write special CZI XML metainformation for: ', xmlfile)
 
 
-def load_image_data(files: list,
+def load_image_data(files: list, write_metadata: bool = False):
+    """
+    The load_image_data function loads the image data from a list of files.
+    It returns three lists: all_img_data, all_metadata,
+    and all_additional metadata. The first two are lists of numpy arrays
+    containing the image data and metadata for each file in files.
+    The third is a list of dictionaries containing additional
+    information about each file.
+
+    Args:
+        files:list: Pass a list of files to the function
+        write_metadata:bool=False: Write the metadata to a file
+
+    Returns:
+        Three values: all_img_data, all_metadata, and all_additional metadata
+    """
+    # todo make that this only takes czi images
+
+    all_img_data = []
+    all_metadata = []
+    all_add_metadata = []
+
+    def process_file(file):
+        print(file)
+        img_data, metadata, add_metadata = imf.get_array_czi(file, return_addmd=False)
+        return img_data, metadata, add_metadata
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(process_file, files))
+
+    for img_data, metadata, add_metadata in results:
+        all_img_data.append(img_data)
+        all_metadata.append(metadata)
+        all_add_metadata.append(add_metadata)
+
+    if write_metadata:
+        path = os.path.dirname(files[0])
+        ic(path)
+        write_metadata_xml(path, files)
+
+    return all_img_data, all_metadata, all_add_metadata
+
+
+def load_image_data_old(files: list,
                     write_metadata: bool = False):
     """
     The load_image_data function loads the image data from a list of files.
