@@ -128,7 +128,9 @@ def plot_images(image_data: list,
 
 def process_image(zstack_img, display_channel, detection_channel, minmax, param1, param2):
     z_circles = []
-    output_img = display_channel.copy()#img[display_channel] \ #todo rename, this is not correct
+    output_img = display_channel
+    #ic(display_channel.shape)
+    #output_img = display_channel.copy()#img[display_channel] \ #todo rename, this is not correct
         #[timepoint_index][zstack_index].copy()
 
     # Apply Gaussian blur to reduce noise
@@ -230,7 +232,7 @@ def detect_circles(image_data: list,
             img = handler.convert8bit(img)
 
         detection_img = img[detection_channel]
-        ic(detection_img.shape)
+        print(f'detection_img.shape: {detection_img.shape}')
 
         timepoint_circles = []
 
@@ -244,39 +246,44 @@ def detect_circles(image_data: list,
                 param1 = param1_array[index] if isinstance(param1_array, list) else param1_array
                 param2 = param2_array[index] if isinstance(param2_array, list) else param2_array
 
-                circle, output_img, _ = process_image(zstack_img, img[display_channel][timepoint_index][zstack_index], detection_channel, minmax, param1, param2)
+                output_img = img[display_channel][timepoint_index][zstack_index].copy()
+                circle, output_img, _ = process_image(zstack_img, output_img , detection_channel, minmax, param1, param2)
 
-                z_circles.append(circle)
+                if circle is not None:
 
-                if debug:
-                    ic(z_circles)
+                    z_circles.append(circle)
 
-                if plot:
-                    fig = plt.figure(figsize=(5, 5), frameon=False)
-                    fig.tight_layout(pad=0)
-                    plt.imshow(output_img)  # , vmin=0, vmax=20)
-                    plt.axis('off')
-                    plt.show()
-                    plt.close()
+                    if debug:
+                        print(f'z_circles: {z_circles}')
 
-                if hough_saving:
-                    try:
-                        os.mkdir('analysis/HoughCircles')
-                    except FileExistsError:
-                        pass
-                    except FileNotFoundError:
-                        os.mkdir('analysis')
-                        os.mkdir('analysis/HoughCircles')
-                    # todo check if this works with this
-                    #  zero or needs try except to work
-                    temp_filename = image_metadata[index][0]\
-                        ['Filename'].replace('.czi', '')
-                    output_filename = ''.join(['analysis/HoughCircles/',
-                                               temp_filename,
-                                               '_houghcircles.png'])
-                    # ic(output_filename)
-                    plt.imsave(output_filename, output_img, cmap='gray')
-                    # , vmin=0, vmax=20)
+                    if plot:
+                        print(f'output_img.shape: {output_img.shape}')
+
+                        fig = plt.figure(figsize=(5, 5), frameon=False)
+                        fig.tight_layout(pad=0)
+                        plt.imshow(output_img)  # , vmin=0, vmax=20)
+                        plt.axis('off')
+                        plt.show()
+                        plt.close()
+
+                    if hough_saving:
+                        try:
+                            os.mkdir('analysis/HoughCircles')
+                        except FileExistsError:
+                            pass
+                        except FileNotFoundError:
+                            os.mkdir('analysis')
+                            os.mkdir('analysis/HoughCircles')
+                        # todo check if this works with this
+                        #  zero or needs try except to work
+                        temp_filename = image_metadata[index][0]\
+                            ['Filename'].replace('.czi', '')
+                        output_filename = ''.join(['analysis/HoughCircles/',
+                                                   temp_filename,
+                                                   '_houghcircles.png'])
+                        # ic(output_filename)
+                        plt.imsave(output_filename, output_img, cmap='gray')
+                        # , vmin=0, vmax=20)
 
             timepoint_circles.append(z_circles)
 
@@ -426,7 +433,6 @@ def measure_circle_intensity(image_data: list,
                 filename = image_metadata[index]['Filename']
 
         print(f'file {index + 1} ({filename}) is being processed...')
-
 
         if img.dtype == 'uint16':
             img = handler.convert8bit(img)
