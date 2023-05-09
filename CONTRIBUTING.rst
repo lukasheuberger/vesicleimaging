@@ -38,8 +38,8 @@ and "help wanted" is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-vesimaging could always use more documentation, whether as part of the
-official vesimaging docs, in docstrings, or even on the web in blog posts,
+vesicleimaging could always use more documentation, whether as part of the
+official vesicleimaging docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback

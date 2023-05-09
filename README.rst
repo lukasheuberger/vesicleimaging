@@ -1,5 +1,5 @@
 ==========
-vesimaging
+vesicleimaging
 ==========
 
 
@@ -14,9 +14,10 @@ vesimaging
         :alt: Documentation Status
 
 
+CURRENTLY UNDER CONSTRUCTION!
 
 
-bla
+Description comes here
 
 
 * Free software: Apache Software License 2.0
