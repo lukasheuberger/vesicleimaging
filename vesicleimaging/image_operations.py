@@ -1,5 +1,10 @@
-
-
+import os
+import cv2
+from skimage import img_as_ubyte
+import matplotlib.pyplot as plt
+import numpy as np
+from .image_info import get_channels, disp_scaling
+from matplotlib_scalebar.scalebar import ScaleBar
 
 
 def increase_brightness(img,
@@ -67,13 +72,19 @@ def max_projection(image_data: list[int]):
     # todo improve this
     # todo add this to tests
     new_image = []
-    ic(image_data.shape)
+    print(f'image_data.shape: {image_data.shape}')
     for channel_index, channel_img in enumerate(image_data):
-        ic(channel_index, channel_img.shape)
+
+        print(f'channel_index: {channel_index}')
+        print(f'channel_img.shape: {channel_img.shape}')
         for timepoint_index, timepoint in enumerate(channel_img):
-            ic(timepoint_index, timepoint.shape)
-            max_projection = np.max(timepoint, axis=0)
-            ic(max_projection.shape)
+
+            print(f'timepoint_index: {timepoint_index}')
+            print(f'timepoint.shape: {timepoint.shape}')
+            max_projection =  np.max(timepoint, axis=0)
+
+            print(f'max_projection.shape: {max_projection.shape}')
+
         new_image.append(max_projection)
     return new_image
 
@@ -110,7 +121,7 @@ def plot_images(image_data: list,
 
     # dimension order: C, T, Z, Y, X
 
-    channels = handler.get_channels([img_add_metadata])
+    channels = get_channels([img_add_metadata])
     channel_names = []
     for channel in channels[2]:
         if channel is None:
@@ -120,16 +131,19 @@ def plot_images(image_data: list,
         else:
             channel_names.append(channel.replace(" ", ""))
 
-    scaling_x = handler.disp_scaling([img_add_metadata])
+    scaling_x = disp_scaling([img_add_metadata])
 
     for channel_index, channel_img in enumerate(image_data):
-        # ic(channel_index, channel_img.shape)
+        # print(f'channel_index: {channel_index}')
+        # print(f'channel_img.shape: {channel_img.shape}')
 
         for timepoint_index, timepoint in enumerate(channel_img):
-            # ic(timepoint_index, timepoint.shape)
+            # print(f'timepoint_index: {timepoint_index}')
+            # print(f'timepoint.shape: {timepoint.shape}')
 
             for zstack_index, zstack in enumerate(timepoint):
-                # ic(zstack_index, zstack.shape)
+                # print(f'zstack_index: {zstack_index}')
+                # print(f'zstack.shape: {zstack.shape}')
 
                 try:
                     temp_filename = img_metadata['Filename'].replace('.czi', '')
@@ -156,10 +170,10 @@ def plot_images(image_data: list,
                     plt.gca().add_artist(scalebar)
 
                 if saving:
-                    ic(os.getcwd())
+                    print(f'current working directory: {os.getcwd()}')
                     new_folder_path = os.path.join(os.getcwd(), 'analysis')
                     try:
-                        ic(new_folder_path)
+                        print(f'new_folder_path: {new_folder_path}')
                         os.mkdir(new_folder_path)
                         print('created new analysis folder: ', new_folder_path)
                     except (FileExistsError, FileNotFoundError):

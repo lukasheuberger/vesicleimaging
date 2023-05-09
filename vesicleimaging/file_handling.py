@@ -1,8 +1,8 @@
 import os
+import h5py
+import pickle
+import numpy as np
 
-def test():
-    print('test')
-    print('gaggi bisi')
 
 def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append_method='_'):
     """
@@ -29,7 +29,7 @@ def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append
     # Iterate through the directory and its subdirectories
     for root, _, files in os.walk(directory):
         for file in files:
-            # Check if the file has the desired extension and does not contain the exclude keyword
+            # Check if the file has the desired extension and does not contain exclude keyword
             if file.endswith(file_ext) and not file.endswith(exclude_keyword + file_ext):
                 # Add the file path to the found_files list
                 found_files.append(os.path.join(root, file))
@@ -43,12 +43,6 @@ def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append
                 filenames.append(f"{parent2}_{parent1}")
 
     return found_files, filenames
-
-
-#path = '/Volumes/rta-a-scicore-che-palivan$/FG/Palivan/heuber0000/experimental_data/LH23-24/processed'
-# Specify your folder path
-#files, filenames = find_files(path)
-#print(filenames)
 
 
 def get_files(path: str):
@@ -89,8 +83,8 @@ def get_files(path: str):
 
 
 def save_h5_files(data: list[int],
-               metadata: list[str],
-               add_metadata: list[str]):
+                  metadata: list[str],
+                  add_metadata: list[str]):
     """
     The save_files function takes in a list of images, and saves them to
     hdf5 files. The function also takes in a list of metadata and

@@ -18,10 +18,9 @@ import numpy as np
 import pandas as pd
 import scipy.optimize
 import scipy.special
-from icecream import ic
-
-from vesicle_imaging import czi_image_handling as handler
-
+from .file_handling import get_files
+from .czi_processing import load_image_data, extract_channels
+from .image_info import disp_scaling
 
 def load_data(path: str):
     """
@@ -118,7 +117,7 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
     # Load the data
     os.chdir(path)
     # ic(os.listdir(path))
-    ic(os.getcwd())
+    print(f'current working directory: {os.getcwd()}')
 
     # check if hdf5 file exists and load that instead of all data
     if os.path.exists("data.h5"):
@@ -133,7 +132,7 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
         ) = load_data("data.h5")
 
     else:
-        files, _ = handler.get_files(path)
+        files, _ = get_files(path)
         # ic(files)
 
         print("number of images: ", len(files))
@@ -148,11 +147,11 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
         # extract only one channel (bleach_channel) and x,y data over time
         for file in files:
             # ic(file)
-            data, metadata, add_metadata = handler.load_image_data([file])
+            data, metadata, add_metadata = load_image_data([file])
             image_data.append(data)
             image_metadata.append(metadata)
             image_add_metadata.append(add_metadata)
-            img_data = handler.extract_channels(data)[0]
+            img_data = extract_channels(data)[0]
 
             # cut all to time of interest for hdf5 export
             # ic(img_data[0][bleach:recovery_frame].shape)
@@ -199,7 +198,7 @@ def init_data(path: str, bleach: int, channel_bleach: int, recovery_frame: int):
                 ]["Channels"]["Channel"][0]
                 ["LaserScanInfo"]["FrameTime"]
             )
-            scalings.append(float(handler.disp_scaling(image_add_metadata)[0]))
+            scalings.append(float(disp_scaling(image_add_metadata)[0]))
 
             # ic(image_metadata[index][0]['Filename'])
 

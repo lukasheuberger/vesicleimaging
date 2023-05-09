@@ -1,3 +1,9 @@
+import os
+from .imgfileutils import get_array_czi
+import concurrent.futures
+import czifile
+import xml.etree.ElementTree as ET
+
 
 def write_metadata_xml(path: str,
                        files: list):
@@ -20,7 +26,7 @@ def write_metadata_xml(path: str,
     #  (-> files in subfolders)
 
     metadata_path = ''.join([path, '/metadata'])
-    ic(metadata_path)
+    print(f'path to metadata folder: {metadata_path}')
 
     try:
         os.mkdir(metadata_path)
@@ -29,7 +35,8 @@ def write_metadata_xml(path: str,
         print(f'folder already exists: {metadata_path}')
 
     for file in files:
-        ic(file)
+        print(f'file: {file}')
+
         xmlczi = czifile.CziFile(file).metadata()
 
         # define the new filename for the XML to be created later
@@ -73,8 +80,8 @@ def load_image_data(files: list, write_metadata: bool = False):
     files = [file for file in files if file.endswith('.czi')]
 
     def process_file(file):
-        print(file)
-        img_data, metadata, add_metadata = imf.get_array_czi(file, return_addmd=False)
+        print(f'processing file: {file}')
+        img_data, metadata, add_metadata = get_array_czi(file, return_addmd=False)
         return img_data, metadata, add_metadata
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -87,7 +94,7 @@ def load_image_data(files: list, write_metadata: bool = False):
 
     if write_metadata:
         path = os.path.dirname(files[0])
-        ic(path)
+        print(f'path: {path}')
         write_metadata_xml(path, files)
 
     return all_img_data, all_metadata, all_add_metadata
@@ -115,20 +122,19 @@ def load_image_data_old(files: list,
     all_metadata = []
     all_add_metadata = []
 
-    ic(files)
+    print(f'files: {files}')
 
     for file in files:
         # get the array and the metadata
-        print(file)
-        img_data, metadata, add_metadata = imf.get_array_czi(
-            file, return_addmd=False)
+        print(f'processing file: {file}')
+        img_data, metadata, add_metadata = get_array_czi(file, return_addmd=False)
         all_img_data.append(img_data)
         all_metadata.append(metadata)
         all_add_metadata.append(add_metadata)
 
     if write_metadata:
         path = os.path.dirname(files[0])
-        ic(path)
+        print(f'path: {path}')
         write_metadata_xml(path, files)
 
     return all_img_data, all_metadata, all_add_metadata

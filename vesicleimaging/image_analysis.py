@@ -1,4 +1,11 @@
 # Description: This file contains functions for image analysis.
+import os
+from numba import njit
+import cv2
+import numpy as np
+from .image_operations import convert8bit, disp_scaling
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def process_image(zstack_img, display_channel, detection_channel, minmax, param1, param2):
@@ -104,7 +111,7 @@ def detect_circles(image_data: list,
         print(f'file {index+1} ({filename}) is being processed...')
 
         if img.dtype == 'uint16':
-            img = handler.convert8bit(img)
+            img = convert8bit(img)
 
         detection_img = img[detection_channel]
         print(f'detection_img.shape: {detection_img.shape}')
@@ -176,7 +183,7 @@ def plot_size_histogram(circles: list,
     # todo convert to um instead of pixels
     # todo import formatLH
 
-    ic(len(circles[:][:][:][:])) #todo doesnt work
+    # ic(len(circles[:][:][:][:])) #todo doesnt work
 
     radii = []
 
@@ -187,16 +194,15 @@ def plot_size_histogram(circles: list,
                     # ic(list)
                     radii.append(list[2])
 
-    scale_factor = float(handler.disp_scaling(add_metadata[0])[0]) # assume it doesn't change during experiment
-    ic(scale_factor)
+    scale_factor = float(disp_scaling(add_metadata[0])[0]) # assume it doesn't change during experiment
+    print(f'scale_factor: {scale_factor}')
 
-    ic(type(scale_factor))
-    ic(type(radii[0]))
+    print(f'type(scale_factor): {type(scale_factor)}')
+    print(f'type(radii[0]): {type(radii[0])}')
 
     radii = [2 * radius * scale_factor * 10e5 for radius in radii] # x 10^5 for units in um
 
-    ic(len(radii))
-
+    print(f'len(radii): {len(radii)}')
 
     plt.figure()
     _, bins, _ = plt.hist(radii, bins=bins, color='black')
@@ -310,7 +316,7 @@ def measure_circle_intensity(image_data: list,
         print(f'file {index + 1} ({filename}) is being processed...')
 
         if img.dtype == 'uint16':
-            img = handler.convert8bit(img)
+            img = convert8bit(img)
 
         detection_img = img[measurement_channel]
         # ic(detection_img.shape)
