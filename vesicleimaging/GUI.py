@@ -9,9 +9,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib_scalebar.scalebar import ScaleBar
 
-import czi_image_analysis as cia
-import czi_image_handling as cih
-
+# import czi_image_analysis as cia
+# import czi_image_handling as cih
 
 # todo make this into a gui wrapper for all other functions
 
@@ -555,6 +554,7 @@ class qtGUI(QDialog, GUIFunctions):
 
 
 if __name__ == '__main__':
+    vi.test()
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
     input_window = qtGUI()

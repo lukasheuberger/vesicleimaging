@@ -2,7 +2,7 @@ import os
 from .imgfileutils import get_array_czi
 import concurrent.futures
 import czifile
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as et
 
 
 def write_metadata_xml(path: str,
@@ -46,13 +46,12 @@ def write_metadata_xml(path: str,
         xmlfile = ''.join([xmlfile, '/metadata/', filename])
 
         # get the element tree
-        tree = ET.ElementTree(ET.fromstring(xmlczi))
+        tree = et.ElementTree(et.fromstring(xmlczi))
 
         # write xml to disk
         tree.write(xmlfile, encoding='utf-8', method='xml')
 
         print('Write special CZI XML metainformation for: ', xmlfile)
-
 
 
 def load_image_data(files: list, write_metadata: bool = False):
@@ -101,7 +100,7 @@ def load_image_data(files: list, write_metadata: bool = False):
 
 
 def load_image_data_old(files: list,
-                    write_metadata: bool = False):
+                        write_metadata: bool = False):
     """
     The load_image_data function loads the image data from a list of files.
     It returns three lists: all_img_data, all_metadata,
@@ -138,6 +137,7 @@ def load_image_data_old(files: list,
         write_metadata_xml(path, files)
 
     return all_img_data, all_metadata, all_add_metadata
+
 
 def extract_channels(img_data: list[int]):
     """
