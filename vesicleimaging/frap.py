@@ -22,11 +22,11 @@ from .file_handling import get_files
 from .czi_processing import load_image_data, extract_channels
 from .image_info import disp_scaling
 
+
 def load_data(path: str):
     """
     The load_data function loads the data from a hdf5 file.
     It returns the image_cxyz_data, deltaTs and scalings as numpy arrays.
-
 
     Args:
         path:str: Specify the path to the hdf5 file
@@ -502,7 +502,7 @@ def fit_data(
             guess:list[int]: Pass the initial guess for the parameters
             norm_intensity:list[float]: Normalize the data
             time_array:list[float]: array of time points
-            r:float: Define the radius of the laser beam
+            radius:float: Define the radius of the laser beam
             init_fluo:float: Define the initial fluorescence intensity
             k:float: bleach depth parameter
 

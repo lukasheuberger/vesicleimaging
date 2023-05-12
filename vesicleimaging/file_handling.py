@@ -1,10 +1,13 @@
+# Description: This file contains functions for finding files, saving files
+
 import os
 import h5py
 import pickle
 import numpy as np
 
 
-def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append_method='_', number_folders=0, sort=False):
+def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append_method='_',
+               number_folders=0, sort=False):
     """
     The find_files function takes a directory path as input and returns two lists:
         1. A list of the full file paths for all files in the directory that have a specified extension (default .czi)
@@ -16,6 +19,7 @@ def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append
         exclude_keyword: Exclude files that contain a certain keyword in the name
         append_method: Specify the character that is used to separate the parent directory names
         number_folders: Specify how many parent folders to include in the filenames
+        sort: Sort the filenames and filepaths alphabetically
 
     Returns:
         A list of file paths and a list of filenames
@@ -34,7 +38,7 @@ def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append
 
                 if number_folders == 0:
                     # Append the filename to the filenames list
-                    filenames.append(file.split('.')[0]) # remove file extension
+                    filenames.append(file.split('.')[0])  # remove file extension
 
                 elif number_folders == 1:
                     # Extract the names of the parent directories

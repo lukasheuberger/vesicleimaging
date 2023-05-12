@@ -1,3 +1,5 @@
+# Description: This file contains functions that perform operations on images.
+
 import os
 import cv2
 from skimage import img_as_ubyte
@@ -23,7 +25,7 @@ def increase_brightness(img,
 
     Args:
         img: Pass the image to be adjusted
-        value=30: Increase the brightness of the image
+        value: Increase the brightness of the image
 
     Returns:
         The image with the brightness increased by the value specified
@@ -58,6 +60,7 @@ def convert8bit(img: list[int]):
 
     return img8bit
 
+
 def max_projection(image_data: list[int]):
     """
     The max_projection function takes in a list of images and
@@ -72,6 +75,8 @@ def max_projection(image_data: list[int]):
     # todo improve this
     # todo add this to tests
     new_image = []
+    max_proj = []
+
     print(f'image_data.shape: {image_data.shape}')
     for channel_index, channel_img in enumerate(image_data):
 
@@ -81,12 +86,13 @@ def max_projection(image_data: list[int]):
 
             print(f'timepoint_index: {timepoint_index}')
             print(f'timepoint.shape: {timepoint.shape}')
-            max_projection =  np.max(timepoint, axis=0)
+            max_proj = np.max(timepoint, axis=0)
 
-            print(f'max_projection.shape: {max_projection.shape}')
+            print(f'max_projection.shape: {max_proj.shape}')
 
-        new_image.append(max_projection)
+        new_image.append(max_proj)
     return new_image
+
 
 def plot_images(image_data: list,
                 img_metadata: list,
@@ -107,6 +113,7 @@ def plot_images(image_data: list,
         img_metadata:list: image metadata
         img_add_metadata:list: image additional metadata
         saving:bool=True: Save the images to a folder
+        display:bool=True: Display the images
         scalebar:bool=True: Add a scalebar to the images
         scalebar_value:int=50: Set the length of the scalebar in µm
 
@@ -181,7 +188,7 @@ def plot_images(image_data: list,
 
                     try:
                         output_filename = ''.join([os.getcwd(), '/analysis/',
-                                               title_filename, '.png'])
+                                                  title_filename, '.png'])
                     except OSError:
                         os.mkdir(new_folder_path)
                         output_filename = ''.join([os.getcwd(), '/analysis/',

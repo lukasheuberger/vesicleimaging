@@ -1,8 +1,10 @@
+# Description: This file contains functions for processing czi files.
+
 import os
 from .imgfileutils import get_array_czi
 import concurrent.futures
 import czifile
-import xml.etree.ElementTree as et
+import xml.etree.ElementTree as ET
 
 
 def write_metadata_xml(path: str,
@@ -46,7 +48,7 @@ def write_metadata_xml(path: str,
         xmlfile = ''.join([xmlfile, '/metadata/', filename])
 
         # get the element tree
-        tree = et.ElementTree(et.fromstring(xmlczi))
+        tree = ET.ElementTree(ET.fromstring(xmlczi))
 
         # write xml to disk
         tree.write(xmlfile, encoding='utf-8', method='xml')
@@ -79,9 +81,23 @@ def load_image_data(files: list, write_metadata: bool = False):
     files = [file for file in files if file.endswith('.czi')]
 
     def process_file(file):
+        """
+        The process_file function takes a file path as input and returns the image data,
+         metadata, and additional metadata.
+        The function uses the get_array_czi function from czifile to extract these three
+         pieces of information from a .czi file.
+
+
+        Args:
+            file: Specify the file that is being processed
+
+        Returns:
+            A tuple of three values: img_data, metadata, and add_metadata
+        """
+
         print(f'processing file: {file}')
-        img_data, metadata, add_metadata = get_array_czi(file, return_addmd=False)
-        return img_data, metadata, add_metadata
+        image_data, image_metadata, image_add_metadata = get_array_czi(file, return_addmd=False)
+        return image_data, image_metadata, image_add_metadata
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         results = list(executor.map(process_file, files))
@@ -139,13 +155,13 @@ def load_image_data_old(files: list,
     return all_img_data, all_metadata, all_add_metadata
 
 
-def extract_channels(img_data: list[int]):
+def extract_channels(img_data: list):
     """
     The extract_channels function extracts the first channel
      of each image in a list of images.
 
     Args:
-        img_data:list[int]: Store the image data
+        img_data:list: Store the image data
 
     Returns:
         A list of images that have been extracted from the original image

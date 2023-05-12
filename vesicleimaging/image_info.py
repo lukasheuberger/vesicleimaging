@@ -1,4 +1,4 @@
-
+# Description: This file contains functions that display information about the czi files.
 
 def get_channels(add_metadata):
     """
@@ -152,4 +152,3 @@ def disp_scaling(img_add_metadata):
         scaling_x.append(scale)
 
     return scaling_x
-
