@@ -12,3 +12,5 @@ from .format import *
 from .frap import *
 from .image_info import *
 from .czi_processing import *
+from .plotting.annotate_statistics import *
+from .fcs import *
