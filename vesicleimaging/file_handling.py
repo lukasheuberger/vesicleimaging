@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 
 
-def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append_method='_', number_folders=2):
+def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append_method='_', number_folders=0, sort=False):
     """
     The find_files function takes a directory path as input and returns two lists:
         1. A list of the full file paths for all files in the directory that have a specified extension (default .czi)
@@ -32,7 +32,11 @@ def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append
                 # Add the file path to the found_files list
                 found_files.append(os.path.join(root, file))
 
-                if number_folders == 1:
+                if number_folders == 0:
+                    # Append the filename to the filenames list
+                    filenames.append(file.split('.')[0]) # remove file extension
+
+                elif number_folders == 1:
                     # Extract the names of the parent directories
                     parent1 = os.path.basename(root)
 
@@ -56,8 +60,12 @@ def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append
                     # Combine the parent directory names and append them to the filenames list
                     filenames.append(f"{parent1}{append_method}{parent2}{append_method}{parent3}")
                 else:
-                    print('Please enter a valid number of folders (1, 2 or 3)')
+                    print('Please enter a valid number of folders (0, 1, 2 or 3)')
                     break
+
+    if sort:
+        filenames.sort()
+        found_files.sort()
 
     return found_files, filenames
 
