@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
-def barplot_annotate_brackets(num1, num2, data, center, height, yerr=None, dh=.05, barh=.05, fs=None, maxasterix=3):
+def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, barh=.05, fontsize=None, maxasterix=3):
     """
     The barplot_annotate_brackets function adds p-values to the barplot.
 
@@ -9,22 +10,22 @@ def barplot_annotate_brackets(num1, num2, data, center, height, yerr=None, dh=.0
         num1: Specify the number of the left bar to put the bracket over
         num2: Specify which right bar the bracket should be placed over
         data: string to write or number for generating asterixes
-        center: centers of all bars (like plt.bar() input)
         height: heights of all bars (like plt.bar() input)
-        yerr=None: yerrs of all bars (like plt.bar() input)
         dh=.05: height offset over bar / bar + yerr in axes coordinates (0 to 1)
         barh=.05: bar height in axes coordinates (0 to 1)
-        fs=None: font size
+        fontsize=None: font size
         maxasterix=4: maximum number of asterixes to write (for very small p-values)
 
     Returns:
         A string
 
     """
-
-    if type(data) is str:
+    # Check if data is string
+    # If not, use the significance level to create the text
+    if isinstance(data, str):
         text = data
     else:
+        # Define the significance levels and corresponding asterisks
         # * is p < 0.05
         # ** is p < 0.005
         # *** is p < 0.0005
@@ -32,37 +33,53 @@ def barplot_annotate_brackets(num1, num2, data, center, height, yerr=None, dh=.0
         text = ''
         p = .05
 
+        # Add asterisks for each level of significance
         while data < p:
             text += '*'
             p /= 10.
 
+            # Stop adding asterisks if the maximum number is reached
             if maxasterix and len(text) == maxasterix:
                 break
 
+        # If no significance, label as 'n. s.' (not significant)
         if len(text) == 0:
             text = 'n. s.'
 
-    lx, ly = center[num1], height[num1]
-    rx, ry = center[num2], height[num2]
+    # Define the coordinates for the left and right ends of the bar
+    lx, ly = num1, height[0]
+    rx, ry = num2, height[1]
 
-    if yerr:
-        ly += yerr[num1]
-        ry += yerr[num2]
-
+    # Get the current y-axis limits
     ax_y0, ax_y1 = plt.gca().get_ylim()
+
+    # Scale the height and bar height according to the y-axis limits
     dh *= (ax_y1 - ax_y0)
     barh *= (ax_y1 - ax_y0)
 
+    # Calculate the y-coordinate for the bar
     y = max(ly, ry) + dh
 
+    # Define the coordinates for the bar
     barx = [lx, lx, rx, rx]
-    bary = [y, y+barh, y+barh, y]
+    bary = [y-down[0], y+barh, y+barh, y-down[1]]
     mid = ((lx+rx)/2, y+barh)
 
+    # Draw the bar
     plt.plot(barx, bary, c='black')
 
+    # Prepare the kwargs for the text
     kwargs = dict(ha='center', va='bottom')
-    if fs is not None:
-        kwargs['fontsize'] = fs
+    if fontsize is not None:
+        kwargs['fontsize'] = fontsize
 
+    # Display the text in the middle of the bar
     plt.text(*mid, text, **kwargs)
+
+
+if __name__ == '__main__':
+    data = np.array([[1, 2, 3, 4, 5, 6], [4, 5, 6, 7, 8, 9]])
+    plt.bar(x=[1, 2, 3, 4, 5, 6], height=data.mean(axis=0))# yerr=data.std(axis=0))
+    barplot_annotate_brackets(1, 2, data = '***', height=[1,5], down=[1,2])
+
+    plt.show()
