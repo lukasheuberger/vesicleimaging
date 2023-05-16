@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-def process_image(zstack_img, output_img, minmax, param1, param2, plot):
+def process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_saving):
     """
     The process_image function takes in a zstack image, an output image, the channel to detect on (0-2),
     the min and max radius of the circles to detect, and two parameters for HoughCircles.
@@ -43,20 +43,22 @@ def process_image(zstack_img, output_img, minmax, param1, param2, plot):
                               param1=param1,
                               param2=param2)
 
-    if plot is True and circle is not None:
+
+    if circle is not None:
         # Round off the (x, y) coordinates and radius to integers
         circle = np.round(circle[0, :]).astype(int)
 
-        for (x, y, radius) in circle:
-            # Draw the circle on the output image
-            cv2.circle(output_img, (x, y), radius, (255, 255, 255), 2)
+        if plot is True or hough_saving is True:
+            for (x, y, radius) in circle:
+                # Draw the circle on the output image
+                cv2.circle(output_img, (x, y), radius, (255, 255, 255), 2)
 
-            # Draw a centered rectangle at the center of the circle
-            cv2.rectangle(output_img, (x - 5, y - 5), (x + 5, y + 5), (255, 255, 255), -1)
+                # Draw a centered rectangle at the center of the circle
+                cv2.rectangle(output_img, (x - 5, y - 5), (x + 5, y + 5), (255, 255, 255), -1)
 
         return circle, output_img
     else:
-        return None, None, None
+        return None, None
 
 
 def detect_circles(image_data: list,
@@ -145,7 +147,10 @@ def detect_circles(image_data: list,
                 param2 = param2_array[index] if isinstance(param2_array, list) else param2_array
 
                 output_img = img[display_channel][timepoint_index][zstack_index].copy()
-                circle, output_img = process_image(zstack_img, output_img, minmax, param1, param2, plot)
+                # print(f'output_img.shape: {output_img.shape}')
+
+                circle, output_img = process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_saving)
+                # print(f'output_img.shape: {output_img.shape}')
 
                 if circle is not None:
                     z_circles.append(circle)
@@ -180,7 +185,12 @@ def detect_circles(image_data: list,
                                                    temp_filename,
                                                    '_houghcircles.png'])
                         # print(f'output_filename: {output_filename}')
+                        fig = plt.figure(figsize=(5, 5), frameon=False)
+                        fig.tight_layout(pad=0)
+                        plt.imshow(output_img)  # , vmin=0, vmax=20)
+                        plt.axis('off')
                         plt.imsave(output_filename, output_img, cmap='gray')
+                        plt.close()
 
             timepoint_circles.append(z_circles)
 
@@ -261,6 +271,7 @@ def custom_meshgrid(x_min, x_max, y_min, y_max):
     Returns:
         A meshgrid of the specified size
     """
+
     xs = np.empty((y_max - y_min, x_max - x_min), dtype=np.int32)
     ys = np.empty((y_max - y_min, x_max - x_min), dtype=np.int32)
 
@@ -287,9 +298,11 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
     Returns:
         The average value of all pixels in the circle, and an array of all pixels in the circle
     """
-    
+
+    # print(f'zstack_img.shape: {zstack_img.shape}')
+
     average_per_circle = []
-    pixels_in_circle = []
+    # pixels_in_circle_list = []
     
     for circle in measurement_circles:
 
@@ -307,13 +320,16 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
         masked_ys = ys.ravel()[mask.ravel()]
         masked_xs = xs.ravel()[mask.ravel()]
 
-        pixels_in_circle = np.empty_like(masked_ys, dtype=zstack_img.dtype)
+        pixels_in_circle_array = np.empty_like(masked_ys, dtype=zstack_img.dtype)  # Renamed variable
+        # pixels_in_circle = np.empty_like(masked_ys, dtype=zstack_img.dtype)
         for i in range(masked_ys.size):
-            pixels_in_circle[i] = zstack_img[masked_ys[i], masked_xs[i]]
+            pixels_in_circle_array[i] = zstack_img[masked_ys[i], masked_xs[i]]
+            # pixels_in_circle[i] = zstack_img[masked_ys[i], masked_xs[i]]
 
-        average_per_circle.append(np.mean(pixels_in_circle))
+        # average_per_circle.append(np.mean(pixels_in_circle))
+        average_per_circle.append(np.mean(pixels_in_circle_array))
 
-    return average_per_circle, pixels_in_circle
+    return average_per_circle, pixels_in_circle_array
 
 
 def measure_circle_intensity(image_data: list,
@@ -394,7 +410,7 @@ def measure_circle_intensity(image_data: list,
                     try:
                         measurement_circles = circles[index]\
                             [timepoint_index][zstack_index]
-                        print(f'Number of circles measured in this image {len(measurement_circles)}')
+                        print(f'Number of circles measured in this image: {len(measurement_circles)}')
                         # print(measurement_circles)
                         # measurement_radius = radius_px - distance_from_border
                         average_per_circle, pixels_in_circle = calculate_average_per_circle(zstack_img,
