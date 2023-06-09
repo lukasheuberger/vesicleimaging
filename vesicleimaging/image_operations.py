@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from .image_info import get_channels, disp_scaling
 from matplotlib_scalebar.scalebar import ScaleBar
+import pandas as pd
 
 
 def increase_brightness(img,
@@ -201,3 +202,30 @@ def plot_images(image_data: list,
                 if display:
                     plt.show()
                     plt.close()
+
+def circles_to_pandas(detected_circles: list, filenames: list, scaling_factor: float):
+    circles_df = pd.DataFrame()
+
+    for index, outer in enumerate(detected_circles):
+        # print(filenames[index])
+        for inner in outer:
+            for arr in inner:
+                for array in arr:
+                    array_list = array.tolist()
+                    # print(array_list)
+                    temp_df = pd.DataFrame([array_list], columns=['X', 'Y', 'radius_px'])
+
+                    # print(array_list[2])
+
+                    # add column with scaled radius
+                    temp_df['radius_um'] = array_list[2] * scaling_factor * 10e5
+                    temp_df['diameter_um'] = array_list[2] * scaling_factor * 10e5 * 2
+
+                    # add a new column with the condition
+                    temp_df['filename'] = filenames[index]
+
+                    # append the temporary dataframe to the main dataframe
+                    circles_df = circles_df.append(temp_df)
+
+
+    return circles_df
