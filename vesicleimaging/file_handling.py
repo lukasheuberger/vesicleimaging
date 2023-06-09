@@ -6,8 +6,8 @@ import pickle
 import numpy as np
 
 
-def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append_method='_',
-               number_folders=0, sort=False):
+def find_files(directory, file_ext='.czi', include_keyword=None, exclude_keyword='placeholder',
+               append_method='_', number_folders=0, sort=False):
     """
     The find_files function takes a directory path as input and returns two lists:
         1. A list of the full file paths for all files in the directory that have a specified extension (default .czi)
@@ -16,6 +16,7 @@ def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append
     Args:
         directory: Specify the directory in which to search for files
         file_ext: Specify the file extension of the files to be found
+        include_keyword: Only include files that contain a certain keyword in the name
         exclude_keyword: Exclude files that contain a certain keyword in the name
         append_method: Specify the character that is used to separate the parent directory names
         number_folders: Specify how many parent folders to include in the filenames
@@ -31,8 +32,8 @@ def find_files(directory, file_ext='.czi', exclude_keyword='placeholder', append
     # Iterate through the directory and its subdirectories
     for root, _, files in os.walk(directory):
         for file in files:
-            # Check if the file has the desired extension and does not contain exclude keyword
-            if file.endswith(file_ext) and not file.endswith(exclude_keyword + file_ext):
+            # Check if the file has the desired extension, does not contain exclude keyword, and does contain include keyword
+            if file.endswith(file_ext) and not file.endswith(exclude_keyword + file_ext) and (include_keyword is None or include_keyword in file):
                 if not file.startswith('._'):
                     # Add the file path to the found_files list
                     found_files.append(os.path.join(root, file))
