@@ -5,7 +5,6 @@ def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, ba
     """
     The barplot_annotate_brackets function adds p-values to the barplot.
 
-
     Args:
         num1: Specify the number of the left bar to put the bracket over
         num2: Specify which right bar the bracket should be placed over
