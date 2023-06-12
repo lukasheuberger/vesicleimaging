@@ -35,9 +35,9 @@ def process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_sa
     gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
     # plt.imshow(gray_blurred)
     # ic(output_img.shape)
-    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT,
-                              dp=2,
-                              minDist=minmax[1],
+    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT_ALT, # alternative: HOUGH_GRADIENT
+                              dp=1.5,
+                              minDist=minmax[1]/2,
                               minRadius=minmax[0],
                               maxRadius=minmax[1],
                               param1=param1,
@@ -151,6 +151,11 @@ def detect_circles(image_data: list,
 
                 circle, output_img = process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_saving)
                 # print(f'output_img.shape: {output_img.shape}')
+
+                # try:
+                #     print(f'output_img.shape: {output_img.shape}')
+                # except AttributeError:
+                #     print(f'no circles detected on {filenames[index]}')
 
                 if circle is not None:
                     z_circles.append(circle)
