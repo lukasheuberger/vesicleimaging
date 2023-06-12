@@ -166,7 +166,7 @@ def detect_circles(image_data: list,
                         plt.imshow(output_img)  # , vmin=0, vmax=20)
                         plt.axis('off')
                         plt.show()
-                        plt.close()
+                        #plt.close()
 
                     if hough_saving:
                         try:
