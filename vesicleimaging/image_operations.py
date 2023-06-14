@@ -229,3 +229,32 @@ def circles_to_pandas(detected_circles: list, filenames: list, scaling_factor: f
 
 
     return circles_df
+
+def split_positions(image_data):
+    """
+    The split_positions function takes a 6-dimensional numpy array and splits it along the first axis.
+    The function returns a list of 5-dimensional arrays, each containing data for one position.
+
+    Args:
+        image_data: Pass in the image data
+
+    Returns:
+        A list of numpy arrays, each containing a single image
+    """
+
+    # Check if the input is a numpy array
+    if type(image_data) is not np.ndarray:
+        raise ValueError('Input data must be a numpy array')
+
+    # Check if the array has the correct number of dimensions
+    if image_data.ndim != 6:
+        raise ValueError('Input data must be a 6-dimensional array')
+
+    # Split the array along the first axis
+    split_data = np.array_split(image_data, image_data.shape[0])
+
+    # Remove dimensions of size 1
+    split_data = [np.squeeze(sub_array, axis=0) for sub_array in split_data]
+
+    return split_data
+
