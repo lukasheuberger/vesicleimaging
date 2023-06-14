@@ -116,8 +116,6 @@ def detect_circles(image_data: list,
     if isinstance(image_metadata, list) is False:
         raise ValueError('image_metadata must be a list')
 
-    # ic(image_data.shape)
-
     circles = []
     output_img = None
 
@@ -132,79 +130,109 @@ def detect_circles(image_data: list,
             img = convert8bit(img)
 
         detection_img = img[detection_channel]
-        print(f'detection_img.shape: {detection_img.shape}')
+        # print(f'detection_img.shape: {detection_img.shape}')
 
-        timepoint_circles = []
+        if len(img.shape) == 5:
+            print('5dim, only one position')
+            # directly iterate through timepoints, zstack
+            print(detection_img.shape)
 
-        for timepoint_index, timepoint_img in enumerate(detection_img):
-            # ic(timepoint_index, timepoint_img.shape)
+            timepoint_circles = iterate_circles(index, img, image_metadata, detection_img, param1_array, param2_array, display_channel, minmax,
+                                                plot, hough_saving, debug) # there must be a more elegant way to do this
+            circles.append(timepoint_circles)
 
-            z_circles = []
-            for zstack_index, zstack_img in enumerate(timepoint_img):
-                # ic(zstack_index, zstack_img.shape)
+        elif len(img.shape) == 6:
+            print('6dim, multiple positions')
+            # iterate through positions first, then timepoints & zstack
 
-                param1 = param1_array[index] if isinstance(param1_array, list) else param1_array
-                param2 = param2_array[index] if isinstance(param2_array, list) else param2_array
-
-                output_img = img[display_channel][timepoint_index][zstack_index].copy()
-                # print(f'output_img.shape: {output_img.shape}')
-
-                circle, output_img = process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_saving)
-                # print(f'output_img.shape: {output_img.shape}')
-
-                # try:
-                #     print(f'output_img.shape: {output_img.shape}')
-                # except AttributeError:
-                #     print(f'no circles detected on {filenames[index]}')
-
-                if circle is not None:
-                    z_circles.append(circle)
-
-                    if debug:
-                        print(f'z_circles: {z_circles}')
-
-                    if plot:
-                        print(f'output_img.shape: {output_img.shape}')
-
-                        fig = plt.figure(figsize=(5, 5), frameon=False)
-                        fig.tight_layout(pad=0)
-                        plt.imshow(output_img)  # , vmin=0, vmax=20)
-                        plt.axis('off')
-                        plt.show()
-                        plt.close()
-
-                    if hough_saving:
-                        try:
-                            os.mkdir('analysis/HoughCircles')
-                        except FileExistsError:
-                            pass
-                        except FileNotFoundError:
-                            os.mkdir('analysis')
-                            os.mkdir('analysis/HoughCircles')
-
-                        # todo check if this works with this
-                        # zero or needs try except to work
-                        temp_filename = image_metadata[index][0]\
-                            ['Filename'].replace('.czi', '')
-                        output_filename = ''.join(['analysis/HoughCircles/',
-                                                   temp_filename,
-                                                   '_houghcircles.png'])
-                        # print(f'output_filename: {output_filename}')
-                        fig = plt.figure(figsize=(5, 5), frameon=False)
-                        fig.tight_layout(pad=0)
-                        plt.imshow(output_img)  # , vmin=0, vmax=20)
-                        plt.axis('off')
-                        plt.imsave(output_filename, output_img, cmap='gray')
-                        plt.close()
-
-            timepoint_circles.append(z_circles)
-
-        circles.append(timepoint_circles)
+            position_circles = []
+            for position_index, position in enumerate(detection_img):
+                # print(f'position_index: {position_index}, position.shape: {position.shape}')
+                timepoint_circles = iterate_circles(index, img, image_metadata, position, param1_array, param2_array, display_channel,
+                                                    minmax,
+                                                    plot, hough_saving, debug, position_index)
+                # print(timepoint_circles)
+                position_circles.append(timepoint_circles)
+            circles.append(position_circles)
+        else:
+            print('unknown dim, please check your data')
+            break
 
     if return_image:
         return circles, output_img
     else:
         return circles
+
+
+def iterate_circles(index, img, image_metadata, detection_img, param1_array, param2_array, display_channel, minmax, plot, hough_saving, debug, position_index=0):
+    timepoint_circles = []
+    for timepoint_index, timepoint_img in enumerate(detection_img):
+        # print(f'timepoint_index: {timepoint_index}, timepoint_img.shape: {timepoint_img.shape}')
+
+        z_circles = []
+        for zstack_index, zstack_img in enumerate(timepoint_img):
+            # print(f'zstack_index: {zstack_index}, zstack_img.shape: {zstack_img.shape}')
+
+            param1 = param1_array[index] if isinstance(param1_array, list) else param1_array
+            param2 = param2_array[index] if isinstance(param2_array, list) else param2_array
+
+            if len(img.shape) == 5:
+                output_img = img[display_channel][timepoint_index][zstack_index].copy()
+            elif len(img.shape) == 6:
+                output_img = img[position_index][display_channel][timepoint_index][zstack_index].copy()
+
+            # print(f'output_img.shape: {output_img.shape}')
+
+            circle, output_img = process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_saving)
+            # print(f'output_img.shape: {output_img.shape}')
+
+            # try:
+            #     print(f'output_img.shape: {output_img.shape}')
+            # except AttributeError:
+            #     print(f'no circles detected on {filenames[index]}')
+
+            if circle is not None:
+                z_circles.append(circle)
+
+                if debug:
+                    print(f'z_circles: {z_circles}')
+
+                if plot:
+                    print(f'output_img.shape: {output_img.shape}')
+
+                    fig = plt.figure(figsize=(5, 5), frameon=False)
+                    fig.tight_layout(pad=0)
+                    plt.imshow(output_img)  # , vmin=0, vmax=20)
+                    plt.axis('off')
+                    plt.show()
+                    plt.close()
+
+                if hough_saving:
+                    try:
+                        os.mkdir('analysis/HoughCircles')
+                    except FileExistsError:
+                        pass
+                    except FileNotFoundError:
+                        os.mkdir('analysis')
+                        os.mkdir('analysis/HoughCircles')
+
+                    # todo check if this works with this
+                    # zero or needs try except to work
+                    temp_filename = image_metadata[index][0] \
+                        ['Filename'].replace('.czi', '')
+                    output_filename = ''.join(['analysis/HoughCircles/',
+                                               temp_filename,
+                                               '_houghcircles.png'])
+                    # print(f'output_filename: {output_filename}')
+                    fig = plt.figure(figsize=(5, 5), frameon=False)
+                    fig.tight_layout(pad=0)
+                    plt.imshow(output_img)  # , vmin=0, vmax=20)
+                    plt.axis('off')
+                    plt.imsave(output_filename, output_img, cmap='gray')
+                    plt.close()
+
+        timepoint_circles.append(z_circles)
+    return timepoint_circles
 
 
 def plot_size_histogram(circles: list,
@@ -437,6 +465,7 @@ def measure_circle_intensity(image_data: list,
                         results_df = results_df.append({
                             'filename': filename,
                             'image': index,
+                            # 'position':
                             'timepoint': timepoint_index,
                             'z_level': zstack_index,
                             'no_GUVs': len(measurement_circles),
@@ -449,6 +478,7 @@ def measure_circle_intensity(image_data: list,
                         print('skipped this image, no circles found')
 
         intensity_per_circle.append(circles_per_image)
+        # intensity_per_circle = pd.concat([intensity_per_circle, circles_per_image], ignore_index=True)
         print('-----------------------------')
 
     if excel_saving:
