@@ -25,6 +25,7 @@ def process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_sa
         param1: Set the threshold for the canny edge detector
         param2: Set the threshold for the circle detection
         plot: Determine if the output image should be plotted
+        hough_saving: Set if hough_circle images should be saved
 
     Returns:
         The circles, the output image and a list of all circles
@@ -32,18 +33,17 @@ def process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_sa
     """
 
     # Apply Gaussian blur to reduce noise
-    gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
+    gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 1.5)
     # plt.imshow(gray_blurred)
-    # ic(output_img.shape)
-    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT_ALT, # alternative: HOUGH_GRADIENT
+    # print(f'output_img.shape:{output_img.shape}')
+    circle = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT_ALT,  # alternative: HOUGH_GRADIENT
                               dp=1.5,
-                              minDist=minmax[1]/2,
+                              minDist=minmax[1] / 2,
                               minRadius=minmax[0],
                               maxRadius=minmax[1],
                               param1=param1,
                               param2=param2)
-
-
+    # print(circle)
     if circle is not None:
         # Round off the (x, y) coordinates and radius to integers
         circle = np.round(circle[0, :]).astype(int)
@@ -109,6 +109,17 @@ def detect_circles(image_data: list,
           ' will be returned first')
     print('-------------------------')
     print(' ')
+    # @param param1 First method-specific parameter. In case of #HOUGH_GRADIENT and #HOUGH_GRADIENT_ALT,
+    #     .   it is the higher threshold of the two passed to the Canny edge detector (the lower one is twice smaller).
+    #     .   Note that #HOUGH_GRADIENT_ALT uses #Scharr algorithm to compute image derivatives, so the threshold value
+    #     .   shough normally be higher, such as 300 or normally exposed and contrasty images.
+    #     .   @param param2 Second method-specific parameter. In case of #HOUGH_GRADIENT, it is the
+    #     .   accumulator threshold for the circle centers at the detection stage. The smaller it is, the more
+    #     .   false circles may be detected. Circles, corresponding to the larger accumulator values, will be
+    #     .   returned first. In the case of #HOUGH_GRADIENT_ALT algorithm, this is the circle "perfectness" measure.
+    #     .   The closer it to 1, the better shaped circles algorithm selects. In most cases 0.9 should be fine.
+    #     .   If you want get better detection of small circles, you may decrease it to 0.85, 0.8 or even less.
+    #     .   But then also try to limit the search range [minRadius, maxRadius] to avoid many false circles.
 
     if isinstance(image_data, list) is False:
         raise ValueError('image_data must be a list')
@@ -119,40 +130,46 @@ def detect_circles(image_data: list,
     circles = []
     output_img = None
 
+    args = (image_metadata, param1_array, param2_array, display_channel, minmax, plot, hough_saving, debug, detection_channel)
+
     for index, img in enumerate(image_data):
         try:
             filename = image_metadata[index][0]['Filename']
         except KeyError:
             filename = image_metadata[index]['Filename']
-        print(f'file {index+1} ({filename}) is being processed...')
+        print(f'file {index + 1} ({filename}) is being processed...')
 
         if img.dtype == 'uint16':
             img = convert8bit(img)
 
-        detection_img = img[detection_channel]
-        # print(f'detection_img.shape: {detection_img.shape}')
+        print(f'img.shape: {img.shape}')
 
         if len(img.shape) == 5:
             print('5dim, only one position')
-            # directly iterate through timepoints, zstack
-            print(detection_img.shape)
 
-            timepoint_circles = iterate_circles(index, img, image_metadata, detection_img, param1_array, param2_array, display_channel, minmax,
-                                                plot, hough_saving, debug) # there must be a more elegant way to do this
-            circles.append(timepoint_circles)
+            # detection_img = img[detection_channel]
+            # print(f'detection_img.shape: {detection_img.shape}')
+            # directly iterate through timepoints, zstack
+
+            timepoint_circles = iterate_circles(*args, index, img)
+            # print([timepoint_circles])
+
+            circles.append([timepoint_circles])
+            # put in brackets to make same form as if it has positions, just with a one first
 
         elif len(img.shape) == 6:
             print('6dim, multiple positions')
+            print(f'img.shape:{img.shape}')
             # iterate through positions first, then timepoints & zstack
 
             position_circles = []
-            for position_index, position in enumerate(detection_img):
-                # print(f'position_index: {position_index}, position.shape: {position.shape}')
-                timepoint_circles = iterate_circles(index, img, image_metadata, position, param1_array, param2_array, display_channel,
-                                                    minmax,
-                                                    plot, hough_saving, debug, position_index)
+            for position_index, position in enumerate(img):
+                print(f'position_index: {position_index}, position.shape: {position.shape}')
+                timepoint_circles = iterate_circles(*args, index, position, position_index)
                 # print(timepoint_circles)
                 position_circles.append(timepoint_circles)
+                # print(position_circles)
+                print('next position')
             circles.append(position_circles)
         else:
             print('unknown dim, please check your data')
@@ -164,7 +181,32 @@ def detect_circles(image_data: list,
         return circles
 
 
-def iterate_circles(index, img, image_metadata, detection_img, param1_array, param2_array, display_channel, minmax, plot, hough_saving, debug, position_index=0):
+def iterate_circles(image_metadata, param1_array, param2_array, display_channel, minmax, plot, hough_saving, debug,
+                    detection_channel, index, img, position_index=0):
+    """
+    The iterate_circles function iterates through the images in a list of filenames,
+        and returns a list of circles detected by HoughCircles.
+
+    Args:
+        index: Access the correct element in param_array
+        img: Display the image in the plot
+        image_metadata: Get the filename of the image
+        param1_array: Set the paramater for the houghcircles function
+        param2_array: Set the threshold for the houghcircles function
+        display_channel: Select which channel to display the circles on
+        minmax: Set the minimum and maximum values for the
+        plot: Plot the image with the detected circles
+        hough_saving: Save the images with the detected circles
+        debug: Print the circles detected in each z-stack
+        detection_channel: channel index where circles should be detected
+        position_index: Select the position index of a multi-position image
+
+    Returns:
+        A list of lists of circles (x, y, r)
+    """
+
+    detection_img = img[detection_channel]
+
     timepoint_circles = []
     for timepoint_index, timepoint_img in enumerate(detection_img):
         # print(f'timepoint_index: {timepoint_index}, timepoint_img.shape: {timepoint_img.shape}')
@@ -198,7 +240,7 @@ def iterate_circles(index, img, image_metadata, detection_img, param1_array, par
                     print(f'z_circles: {z_circles}')
 
                 if plot:
-                    print(f'output_img.shape: {output_img.shape}')
+                    # print(f'output_img.shape: {output_img.shape}')
 
                     fig = plt.figure(figsize=(5, 5), frameon=False)
                     fig.tight_layout(pad=0)
@@ -316,7 +358,7 @@ def custom_meshgrid(x_min, x_max, y_min, y_max):
     return ys, xs
 
 
-@njit
+# @njit
 def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_border):
     """
     The calculate_average_per_circle function takes a zstack image and a list of circles,
@@ -332,12 +374,14 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
         The average value of all pixels in the circle, and an array of all pixels in the circle
     """
 
-    # print(f'zstack_img.shape: {zstack_img.shape}')
+    # print(f'zstack_img.shape: {zstack_img.shape}') # uncommenting this breaks numba
 
     average_per_circle = []
     # pixels_in_circle_list = []
-    
+    # print(measurement_circles)
+
     for circle in measurement_circles:
+        # print(circle)
 
         x_0, y_0, radius_px = circle
         measurement_radius = radius_px - distance_from_border
@@ -346,8 +390,8 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
         y_min, y_max = y_0 - measurement_radius, y_0 + measurement_radius
 
         ys, xs = custom_meshgrid(x_min, x_max, y_min, y_max)
-        dist_squared = (xs - x_0)**2 + (ys - y_0)**2
-        mask = (dist_squared <= measurement_radius**2) & (xs >= 0) & (ys >= 0) &\
+        dist_squared = (xs - x_0) ** 2 + (ys - y_0) ** 2
+        mask = (dist_squared <= measurement_radius ** 2) & (xs >= 0) & (ys >= 0) & \
                (xs < zstack_img.shape[1]) & (ys < zstack_img.shape[0])
 
         masked_ys = ys.ravel()[mask.ravel()]
@@ -425,57 +469,62 @@ def measure_circle_intensity(image_data: list,
         if img.dtype == 'uint16':
             img = convert8bit(img)
 
-        detection_img = img[measurement_channel]
-        # ic(detection_img.shape)
-
         circles_per_image = []
 
-        for timepoint_index, timepoint_img in enumerate(detection_img):
-            # ic(timepoint_index, timepoint_img.shape)
+        # print(f'img.shape: {img.shape}')
 
-            for zstack_index, zstack_img in enumerate(timepoint_img):
-                # print(f'zstack_index: {zstack_index}, zstack_img.shape: {zstack_img.shape}')
+        for position_index, position_img in enumerate(img):
+            # print(f'position_index: {position_index}, position_img.shape: {position_img.shape}')
+            detection_img = position_img[measurement_channel]
+            # ic(detection_img.shape)
 
-                # print(circles[index][timepoint_index])
-                if not circles[index][timepoint_index]:
-                    print('skipping this image')
-                else:
-                    try:
-                        measurement_circles = circles[index]\
-                            [timepoint_index][zstack_index]
-                        print(f'Number of circles measured in this image: {len(measurement_circles)}')
-                        # print(measurement_circles)
-                        # measurement_radius = radius_px - distance_from_border
-                        average_per_circle, pixels_in_circle = calculate_average_per_circle(zstack_img,
-                                                                                            measurement_circles,
-                                                                                            distance_from_border)
+            for timepoint_index, timepoint_img in enumerate(detection_img):
+                # print(f'timepoint_index: {timepoint_index}, timepoint_img.shape: {timepoint_img.shape}')
 
-                        circles_per_image.append(average_per_circle)
+                for zstack_index, zstack_img in enumerate(timepoint_img):
+                    # print(f'zstack_index: {zstack_index}, zstack_img.shape: {zstack_img.shape}')
 
-                        if filenames is not None:  # combine this with the other if
-                            filename = filename.replace('.czi', '')
-                        else:
-                            try:
-                                filename = image_metadata[index][0] \
-                                    ['Filename'].replace('.czi', '')
-                            except KeyError:
-                                filename = image_metadata[index]\
-                                    ['Filename'].replace('.czi', '')
+                    # print(f'circles[index][position_index][timepoint_index]:{circles[index][position_index][timepoint_index]}')
+                    if not circles[index][position_index][timepoint_index]:
+                        print('skipping this image')
+                    else:
+                        try:
+                            measurement_circles = circles[index][position_index] \
+                                [timepoint_index][zstack_index]
+                            # print(measurement_circles)
+                            print(f'Number of circles measured in this image: {len(measurement_circles)}')
+                            # print(measurement_circles)
+                            # measurement_radius = radius_px - distance_from_border
+                            average_per_circle, pixels_in_circle = calculate_average_per_circle(zstack_img,
+                                                                                                measurement_circles,
+                                                                                                distance_from_border)
 
-                        results_df = results_df.append({
-                            'filename': filename,
-                            'image': index,
-                            # 'position':
-                            'timepoint': timepoint_index,
-                            'z_level': zstack_index,
-                            'no_GUVs': len(measurement_circles),
-                            'average': np.mean(pixels_in_circle),
-                            'min': np.min(pixels_in_circle),
-                            'max': np.max(pixels_in_circle),
-                            'stdev': np.std(pixels_in_circle)
-                        }, ignore_index=True)
-                    except (TypeError, IndexError):
-                        print('skipped this image, no circles found')
+                            circles_per_image.append(average_per_circle)
+
+                            if filenames is not None:  # combine this with the other if
+                                filename = filename.replace('.czi', '')
+                            else:
+                                try:
+                                    filename = image_metadata[index][0] \
+                                        ['Filename'].replace('.czi', '')
+                                except KeyError:
+                                    filename = image_metadata[index] \
+                                        ['Filename'].replace('.czi', '')
+
+                            results_df = results_df.append({
+                                'filename': filename,
+                                'image': index,
+                                'position': position_index,
+                                'timepoint': timepoint_index,
+                                'z_level': zstack_index,
+                                'no_GUVs': len(measurement_circles),
+                                'average': np.mean(pixels_in_circle),
+                                'min': np.min(pixels_in_circle),
+                                'max': np.max(pixels_in_circle),
+                                'stdev': np.std(pixels_in_circle)
+                            }, ignore_index=True)
+                        except (TypeError, IndexError):
+                            print('skipped this image, no circles found')
 
         intensity_per_circle.append(circles_per_image)
         # intensity_per_circle = pd.concat([intensity_per_circle, circles_per_image], ignore_index=True)
