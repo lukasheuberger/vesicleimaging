@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, barh=.05, fontsize=None, maxasterix=3):
+def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, barh=.05, fontsize=None, maxasterix=3, linewidth=1):
     """
     The barplot_annotate_brackets function adds p-values to the barplot.
 
@@ -65,7 +65,7 @@ def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, ba
     mid = ((lx+rx)/2, y+barh)
 
     # Draw the bar
-    plt.plot(barx, bary, c='black')
+    plt.plot(barx, bary, c='black', lw=linewidth)
 
     # Prepare the kwargs for the text
     kwargs = dict(ha='center', va='bottom')
@@ -79,6 +79,6 @@ def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, ba
 if __name__ == '__main__':
     data = np.array([[1, 2, 3, 4, 5, 6], [4, 5, 6, 7, 8, 9]])
     plt.bar(x=[1, 2, 3, 4, 5, 6], height=data.mean(axis=0))# yerr=data.std(axis=0))
-    barplot_annotate_brackets(1, 2, data = '***', height=[1,5], down=[1,2])
+    barplot_annotate_brackets(1, 2, data = '***', height=[1,5], down=[1,2], linewidth=12)
 
     plt.show()
