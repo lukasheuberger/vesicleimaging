@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 
-def process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_saving):
+def process_image(zstack_img, output_img, minmax, param1, param2, plot, hough_saving=False):
     """
     The process_image function takes in a zstack image, an output image, the channel to detect on (0-2),
     the min and max radius of the circles to detect, and two parameters for HoughCircles.
@@ -156,7 +156,6 @@ def detect_circles(image_data: list,
 
             circles.append([timepoint_circles])
             # put in brackets to make same form as if it has positions, just with a one first
-
         elif len(img.shape) == 6:
             print('6dim, multiple positions')
             print(f'img.shape:{img.shape}')
@@ -535,3 +534,81 @@ def measure_circle_intensity(image_data: list,
         print('excel saved')
 
     return results_df, intensity_per_circle
+
+
+def detect_circles_tif(image_data, filenames,  param1_array, param2_array, minmax, plot=False, hough_saving=False, debug=False):
+
+    """
+    The detect_circles_tif function takes in a list of image data, filenames, param_array (a list of parameters for the
+    HoughCircles function), minmax (the minimum and maximum radius to search for circles), plot (whether or not to show
+    plots as it runs through the images) and hough_saving (whether or not to save plots). It returns a list of circles.
+
+
+    Args:
+        image_data: Pass the image data to the function
+        filenames: Save the images with the circles detected
+        param1_array: Specify the upper threshold for the canny edge detector
+        param2_array: Set the threshold for the hough transform
+        minmax: Set the minimum and maximum values for the image
+        plot: Plot the image with the circle detected
+        hough_saving: Save the images with the circles detected
+        debug: Print the circles found in each image
+
+    Returns:
+        A list of circles
+    """
+
+    circles = []
+
+    for index, image in enumerate(image_data):
+        print(index)
+        filename = filenames[index]
+        print(f'file {index + 1} ({filename}) is being processed...')
+
+        param1 = param1_array[index] if isinstance(param1_array, list) else param1_array
+        param2 = param2_array[index] if isinstance(param2_array, list) else param2_array
+
+        output_img = image.copy()
+        circle, output_img = process_image(image, output_img, minmax, param1, param2, plot)
+
+        if circle is not None:
+            circles.append(circle)
+        else:
+            circles.append([])
+
+        if debug:
+            print(f'z_circles: {circles}')
+
+        if plot:
+            # print(f'output_img.shape: {output_img.shape}')
+
+            fig = plt.figure(figsize=(5, 5), frameon=False)
+            fig.tight_layout(pad=0)
+            plt.imshow(output_img)  # , vmin=0, vmax=20)
+            plt.axis('off')
+            plt.show()
+            plt.close()
+
+        if hough_saving:
+            try:
+                os.mkdir('analysis/HoughCircles')
+            except FileExistsError:
+                pass
+            except FileNotFoundError:
+                os.mkdir('analysis')
+                os.mkdir('analysis/HoughCircles')
+
+            # todo check if this works with this
+            # zero or needs try except to work
+            output_filename = ''.join(['analysis/HoughCircles/',
+                                       filename,
+                                       '_houghcircles.png'])
+            # print(f'output_filename: {output_filename}')
+            fig = plt.figure(figsize=(5, 5), frameon=False)
+            fig.tight_layout(pad=0)
+            plt.imshow(output_img)  # , vmin=0, vmax=20)
+            plt.axis('off')
+            plt.imsave(output_filename, output_img, cmap='gray')
+            plt.close()
+
+    return circles
