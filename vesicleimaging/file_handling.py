@@ -4,6 +4,9 @@ import os
 import h5py
 import pickle
 import numpy as np
+import tifffile as tf
+from .imgfileutils import get_metadata_ometiff
+from PIL import Image
 
 
 def find_files(directory, file_ext='.czi', include_keyword=None, exclude_keyword='placeholder',
@@ -101,7 +104,7 @@ def get_files(path: str):
     for root, _, files in os.walk(path):
         files.sort()
         for file in files:
-            if '.czi' in file:
+            if '.czi' in file or '.tif' in file :
                 if not file.startswith('.'):
                     filenames.append(file)
                     file_path = os.path.join(root, file)
@@ -212,3 +215,24 @@ def load_h5_data(path: str):
             add_metadata.append(add_meta)
 
     return image_data, metadata, add_metadata
+
+
+def load_tifffile(file_path, grayscale=True):
+    files_array = []
+    for file in file_path:
+        if file.endswith(".tif"):
+            print(f'loading {file} ...')
+            img = Image.open(file)
+            if grayscale:
+                img = img.convert('L')
+
+            # print(f'shape: {img.shape}')
+            # print(f'dtype: {img.dtype}')
+            # print(f'dim: {img.ndim}')
+
+            # Convert the image to a numpy array
+            np_array = np.array(img)
+            files_array.append(np_array)
+    print('all images loaded successfully.')
+
+    return files_array
