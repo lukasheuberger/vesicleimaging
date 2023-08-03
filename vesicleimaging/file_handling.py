@@ -35,8 +35,10 @@ def find_files(directory, file_ext='.czi', include_keyword=None, exclude_keyword
     # Iterate through the directory and its subdirectories
     for root, _, files in os.walk(directory):
         for file in files:
-            # Check if the file has the desired extension, does not contain exclude keyword, and does contain include keyword
-            if file.endswith(file_ext) and not file.endswith(exclude_keyword + file_ext) and (include_keyword is None or include_keyword in file):
+            # Check if the file has the desired extension,
+            # does not contain exclude keyword, and does contain include keyword
+            if file.endswith(file_ext) and not file.endswith(exclude_keyword + file_ext) \
+                    and (include_keyword is None or include_keyword in file):
                 if not file.startswith('._'):
                     # Add the file path to the found_files list
                     found_files.append(os.path.join(root, file))
@@ -104,7 +106,7 @@ def get_files(path: str):
     for root, _, files in os.walk(path):
         files.sort()
         for file in files:
-            if '.czi' in file or '.tif' in file :
+            if '.czi' in file or '.tif' in file:
                 if not file.startswith('.'):
                     filenames.append(file)
                     file_path = os.path.join(root, file)
