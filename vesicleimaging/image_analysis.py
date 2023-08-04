@@ -100,6 +100,7 @@ def detect_circles(image_data: list,
     # see https://docs.opencv.org/
     # 2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     # todo for zstack: don't always recalculate but use existing positions
+    # todo fix text here
 
     # if circles.all() == [None]:
     print('the bigger param1, the fewer circles may be detected')
@@ -456,7 +457,6 @@ def measure_circle_intensity(image_data: list,
             min: mininum intensity of counted GUVs in an image
             max: maximum intensity of counted GUVs in an image
             stdev: standard deviation of all counted GUVs in an image
-        pixels_in_circle:
 
     """
 
@@ -488,7 +488,6 @@ def measure_circle_intensity(image_data: list,
         if dim == 5:
             print('5dim, only one position')
 
-
             detection_img = img[measurement_channel]
             # print(f'detection_img.shape: {detection_img.shape}')
 
@@ -517,19 +516,33 @@ def measure_circle_intensity(image_data: list,
     return results_df #, intensity_per_circle
 
 def iterate_measure(img: object, dim: object, circles: object, index: object, distance_from_border: object, filename: object, position_index: object = 0) -> object:
-    """
+    """"
     The iterate_measure function takes a list of images and circles as input.
+        Args:
+            img: A list of images, each image is a timepoint with z-stacks.
+            dim: The dimensionality of the data (5 or 6). 5 for 2D data, 6 for 3D data.
+            circles: A list containing lists with all the detected GUVs in an image.
+                Each element in this outermost list corresponds to one image/position/timepoint combination (i.e., one .czi file).
+
     Args:
-        img:
-        dim:
-        circles:
-        index:
-        distance_from_border:
-        filename:
-        position_index:
+        img: object: Pass the image data to the function
+        dim: object: Determine the dimension of the circles list
+        circles: object: Pass the circles to the function
+        index: object: Specify which image in the list of images to use
+        distance_from_border: object: Define the distance from the border of a circle to measure
+        filename: object: Get the filename of the image
+        position_index: object: Select the circles for a specific position
 
     Returns:
-
+        A dataframe with the following columns:
+            image: index from list
+            timepoint: index from list
+            z_level: index from list
+            no_GUVs: number of counted GUVs
+            average: average over all counted GUVs in an image
+            min: mininum intensity of counted GUVs in an image
+            max: maximum intensity of counted GUVs in an image
+            stdev: standard deviation of all counted GUVs in an image
     """
 
     intensity_per_circle = []
@@ -581,7 +594,7 @@ def iterate_measure(img: object, dim: object, circles: object, index: object, di
                     df = df.append({
                         'filename': filename,
                         'image': index,
-                        'position': position_index,
+                        'position': int(position_index),
                         'timepoint': timepoint_index,
                         'z_level': zstack_index,
                         'no_GUVs': len(measurement_circles),
