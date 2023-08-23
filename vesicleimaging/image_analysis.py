@@ -590,7 +590,7 @@ def iterate_measure(
     circles: list,
     index: int,
     distance_from_border: int,
-    filename: string,
+    filename: str,
     position_index: int = 0,
 ):
     """
@@ -625,6 +625,7 @@ def iterate_measure(
 
     intensity_per_circle = []
     circles_per_image = []
+
 
     position_df = pd.DataFrame(
         columns=[
