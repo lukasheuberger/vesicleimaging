@@ -61,7 +61,6 @@ issue tracker. For any other inquiries, please contact me
 by email: lukas.heuberger@gmail.com
 
 
-
 Credits
 -------
 
