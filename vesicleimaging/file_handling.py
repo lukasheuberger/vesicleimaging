@@ -1,11 +1,10 @@
 # Description: This file contains functions for finding files, saving files
 
 import os
-import h5py
 import pickle
+
+import h5py
 import numpy as np
-import tifffile as tf
-from .imgfileutils import get_metadata_ometiff
 from PIL import Image
 
 
