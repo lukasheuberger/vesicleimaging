@@ -12,7 +12,7 @@ from .image_operations import convert8bit, disp_scaling
 
 
 def process_image(
-    zstack_img, output_img, minmax, param1, param2, plot, method, dp_val, hough_saving=False):
+    zstack_img, output_img, minmax, param1, param2, plot, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
     """
     The process_image function takes in a zstack image, an output image,
     the channel to detect on (0-2), the min and max radius of the circles
@@ -35,12 +35,12 @@ def process_image(
         The circles, the output image and a list of all circles
     """
 
-    if dp_val is None:
-        if method == cv2.HOUGH_GRADIENT_ALT:
-            dp_val = 1.5
-        if method == cv2.HOUGH_GRADIENT:
-            # print('method is HOUGH_GRADIENT')
-            dp_val = 2
+    #if dp_val is None:
+    if method == cv2.HOUGH_GRADIENT_ALT:
+        dp_val = 1.5
+    if method == cv2.HOUGH_GRADIENT:
+        # print('method is HOUGH_GRADIENT')
+        dp_val = 2
     # print(f"dp_val: {dp_val}")
 
     # Apply Gaussian blur to reduce noise
