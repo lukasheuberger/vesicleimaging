@@ -12,7 +12,7 @@ from .image_operations import convert8bit, disp_scaling
 
 
 def process_image(
-    zstack_img, output_img, minmax, param1, param2, plot, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
+    zstack_img, output_img, minmax, param1, param2, plot=False, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
     """
     The process_image function takes in a zstack image, an output image,
     the channel to detect on (0-2), the min and max radius of the circles
@@ -38,10 +38,12 @@ def process_image(
     #if dp_val is None:
     if method == cv2.HOUGH_GRADIENT_ALT:
         dp_val = 1.5
-    if method == cv2.HOUGH_GRADIENT:
+    elif method == cv2.HOUGH_GRADIENT:
         # print('method is HOUGH_GRADIENT')
         dp_val = 2
     # print(f"dp_val: {dp_val}")
+
+    dp_val=1.5
 
     # Apply Gaussian blur to reduce noise
     gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 1.5)
@@ -91,7 +93,6 @@ def detect_circles(
     hough_saving: bool = False,
     debug: bool = False,
     method: str = cv2.HOUGH_GRADIENT_ALT,
-    dp = None
 ):
     """
     The detect_circles function takes a list of images and returns
@@ -122,6 +123,7 @@ def detect_circles(
     # see https://docs.opencv.org/
     # 2.4/modules/imgproc/doc/feature_detection.html?highlight=houghcircles#houghcircles
     # todo for zstack: don't always recalculate but use existing positions
+    # todo: fix param info depending on which method is used
 
     print("@param1: threshold for the canny edge detector, around 300 works well")
     print("@param2: circle 'perfectness' measure. The closer it to 1, the better "
@@ -148,8 +150,7 @@ def detect_circles(
         hough_saving,
         debug,
         detection_channel,
-        method,
-        dp
+        method
     )
 
     for index, img in enumerate(image_data):
@@ -214,7 +215,6 @@ def iterate_circles(
     debug,
     detection_channel,
     method,
-    dp_val,
     index,
     img,
     position_index=0,
@@ -268,7 +268,7 @@ def iterate_circles(
             # print(f'output_img.shape: {output_img.shape}')
 
             circle, output_img = process_image(
-                zstack_img, output_img, minmax, param1, param2, plot, method, dp_val, hough_saving)
+                zstack_img, output_img, minmax, param1, param2, plot, method, hough_saving)
             # print(circle)
             # print(f'output_img.shape: {output_img.shape}')
 
