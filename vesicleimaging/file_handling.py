@@ -32,33 +32,90 @@ def find_files(directory, file_ext='.czi', include_keyword=None, exclude_keyword
     found_files = []
     filenames = []
 
+    found_files = []
+    filenames = []
+    
+    # Iterate through the directory and its subdirectories
     for root, _, files in os.walk(directory):
         for file in files:
-            if file.endswith(file_ext) and not file.endswith(exclude_keyword + file_ext) \
-                    and (include_keyword is None or include_keyword in file):
-                if not file.startswith('._'):
+            # Check if the file has the desired extension,
+            # does not contain exclude keyword, and does contain include keyword
+            if (
+                file.endswith(file_ext)
+                and not file.endswith(exclude_keyword + file_ext)
+                and (include_keyword is None or include_keyword in file)
+            ):
+                if not file.startswith("._"):
+                    # Add the file path to the found_files list
                     found_files.append(os.path.join(root, file))
-
-                    fn = file.split('.')[0]  # Remove file extension
-
+    
                     if number_folders == 0:
-                        filenames.append(fn if not add_filename else f"{fn}")
-                    else:
+                        # Append the filename to the filenames list
+                        filenames.append(file.split(".")[0])  # remove file extension
+    
+                    elif number_folders == 1:
                         # Extract the names of the parent directories
-                        parent_dirs = [os.path.basename(root)]
-                        for i in range(1, number_folders):
-                            root = os.path.dirname(root)
-                            parent_dirs.insert(0, os.path.basename(root))
-
+                        parent1 = os.path.basename(root)
+                        fn = file.split(".")[0]
+    
                         # Combine the parent directory names and append them to the filenames list
-                        folder_names = append_method.join(parent_dirs)
-                        filenames.append(f"{folder_names}{append_method}{fn}" if add_filename else f"{folder_names}")
-
+                        filenames.append(f"{parent1+'_'+fn}")
+    
+                    elif number_folders == 2:
+                        # Extract the names of the parent directories
+                        parent1 = os.path.basename(root)
+                        parent2 = os.path.basename(os.path.dirname(root))
+    
+                        # Combine the parent directory names and append them to the filenames list
+                        filenames.append(f"{parent1}{append_method}{parent2}")
+    
+                    elif number_folders == 3:
+                        # Extract the names of the parent directories
+                        parent1 = os.path.basename(root)
+                        parent2 = os.path.basename(os.path.dirname(root))
+                        parent3 = os.path.basename(os.path.dirname(os.path.dirname(root)))
+    
+                        # Combine the parent directory names and append them to the filenames list
+                        filenames.append(
+                            f"{parent1}{append_method}{parent2}{append_method}{parent3}"
+                        )
+                    else:
+                        print("Please enter a valid number of folders (0, 1, 2 or 3)")
+                        break
+    
     if sort:
         filenames.sort()
         found_files.sort()
-
+    
     return found_files, filenames
+
+    # for root, _, files in os.walk(directory):
+    #     for file in files:
+    #         if file.endswith(file_ext) and not file.endswith(exclude_keyword + file_ext) \
+    #                 and (include_keyword is None or include_keyword in file):
+    #             if not file.startswith('._'):
+    #                 found_files.append(os.path.join(root, file))
+    #
+    #                 fn = file.split('.')[0]  # Remove file extension
+    #
+    #                 if number_folders == 0:
+    #                     filenames.append(fn if not add_filename else f"{fn}")
+    #                 else:
+    #                     # Extract the names of the parent directories
+    #                     parent_dirs = [os.path.basename(root)]
+    #                     for i in range(1, number_folders):
+    #                         root = os.path.dirname(root)
+    #                         parent_dirs.insert(0, os.path.basename(root))
+    #
+    #                     # Combine the parent directory names and append them to the filenames list
+    #                     folder_names = append_method.join(parent_dirs)
+    #                     filenames.append(f"{folder_names}{append_method}{fn}" if add_filename else f"{folder_names}")
+    #
+    # if sort:
+    #     filenames.sort()
+    #     found_files.sort()
+    #
+    # return found_files, filenames
 
 
 def get_files(path: str):
