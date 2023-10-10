@@ -699,21 +699,22 @@ def iterate_measure(
                                 ".czi", ""
                             )
 
-                    position_df = position_df.append(
+                    new_row = pd.DataFrame(
                         {
-                            "filename": filename,
-                            "image": index,
-                            "position": int(position_index),
-                            "timepoint": timepoint_index,
-                            "z_level": zstack_index,
-                            "no_GUVs": len(measurement_circles),
-                            "average": np.mean(pixels_in_circle),
-                            "min": np.min(pixels_in_circle),
-                            "max": np.max(pixels_in_circle),
-                            "stdev": np.std(pixels_in_circle),
-                        },
-                        ignore_index=True,
+                            "filename": [filename],
+                            "image": [index],
+                            "position": [int(position_index)],
+                            "timepoint": [timepoint_index],
+                            "z_level": [zstack_index],
+                            "no_GUVs": [len(measurement_circles)],
+                            "average": [np.mean(pixels_in_circle)],
+                            "min": [np.min(pixels_in_circle)],
+                            "max": [np.max(pixels_in_circle)],
+                            "stdev": [np.std(pixels_in_circle)],
+                        }
                     )
+
+                    position_df = pd.concat([position_df, new_row], ignore_index=True)
 
                 except (TypeError, IndexError):
                     print("skipped this image, no circles found")
