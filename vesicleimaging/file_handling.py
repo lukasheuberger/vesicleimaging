@@ -31,9 +31,6 @@ def find_files(directory, file_ext='.czi', include_keyword=None, exclude_keyword
 
     found_files = []
     filenames = []
-
-    found_files = []
-    filenames = []
     
     # Iterate through the directory and its subdirectories
     for root, _, files in os.walk(directory):
