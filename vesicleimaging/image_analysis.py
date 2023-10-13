@@ -11,6 +11,8 @@ import pandas as pd
 from .image_operations import convert8bit, disp_scaling
 
 
+#todo make it also plot images when no circles are found
+
 def process_image(
     zstack_img, output_img, minmax, param1, param2, plot=False, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
     """
@@ -708,6 +710,7 @@ def iterate_measure(
                             "z_level": zstack_index,
                             "no_GUVs": len(measurement_circles),
                             "average": np.mean(pixels_in_circle),
+                            "median": np.median(pixels_in_circle),
                             "min": np.min(pixels_in_circle),
                             "max": np.max(pixels_in_circle),
                             "stdev": np.std(pixels_in_circle),
