@@ -701,7 +701,7 @@ def iterate_measure(
                                 ".czi", ""
                             )
 
-                    position_df = position_df.append(
+                    new_row = pd.DataFrame(
                         {
                             "filename": filename,
                             "image": index,
@@ -715,8 +715,8 @@ def iterate_measure(
                             "max": np.max(pixels_in_circle),
                             "stdev": np.std(pixels_in_circle),
                         },
-                        ignore_index=True,
-                    )
+
+                    position_df = pd.concat([position_df, new_row], ignore_index=True)
 
                 except (TypeError, IndexError):
                     print("skipped this image, no circles found")
