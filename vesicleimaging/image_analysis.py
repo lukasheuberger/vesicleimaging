@@ -714,7 +714,7 @@ def iterate_measure(
                             "min": np.min(pixels_in_circle),
                             "max": np.max(pixels_in_circle),
                             "stdev": np.std(pixels_in_circle),
-                        },
+                        })
 
                     position_df = pd.concat([position_df, new_row], ignore_index=True)
 
