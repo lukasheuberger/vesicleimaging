@@ -203,7 +203,7 @@ def plot_images(image_data: list,
                     plt.show()
                     plt.close()
 
-def circles_to_pandas(detected_circles: list, scaling_factor: float):#,  filenames: list):
+def circles_to_pandas(detected_circles: list, scaling_factor: float,  filenames: list):
     circles_df = pd.DataFrame()
 
     for index, outer in enumerate(detected_circles):
@@ -211,22 +211,25 @@ def circles_to_pandas(detected_circles: list, scaling_factor: float):#,  filenam
         for inner in outer:
             for arr in inner:
                 for array in arr:
-                    array_list = array.tolist()
-                    # print(array_list)
-                    temp_df = pd.DataFrame([array_list], columns=['X', 'Y', 'radius_px'])
+                    print(array)
+                    # todo make this work for all shapes of array
+                    for a in array:
+                        array_list = a.tolist()
+                        # print(array_list)
+                        temp_df = pd.DataFrame([array_list], columns=['X', 'Y', 'radius_px'])
 
-                    # print(array_list[2])
+                        # print(array_list[2])
 
-                    # add column with scaled radius
-                    temp_df['radius_um'] = array_list[2] * scaling_factor * 10e5
-                    temp_df['diameter_um'] = array_list[2] * scaling_factor * 10e5 * 2
+                        # add column with scaled radius
+                        temp_df['radius_um'] = array_list[2] * scaling_factor * 10e5
+                        temp_df['diameter_um'] = array_list[2] * scaling_factor * 10e5 * 2
 
-                    if filenames:
-                        # add a new column with the condition
-                        temp_df['filename'] = filenames[index]
+                        if filenames:
+                            # add a new column with the condition
+                            temp_df['filename'] = filenames[index]
 
-                    # append the temporary dataframe to the main dataframe
-                    circles_df = circles_df.append(temp_df)
+                        # append the temporary dataframe to the main dataframe
+                        circles_df = circles_df.append(temp_df)
 
 
     return circles_df
