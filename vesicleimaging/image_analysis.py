@@ -703,18 +703,19 @@ def iterate_measure(
 
                     new_row = pd.DataFrame(
                         {
-                            "filename": filename,
-                            "image": index,
-                            "position": int(position_index),
-                            "timepoint": timepoint_index,
-                            "z_level": zstack_index,
-                            "no_GUVs": len(measurement_circles),
-                            "average": np.mean(pixels_in_circle),
-                            "median": np.median(pixels_in_circle),
-                            "min": np.min(pixels_in_circle),
-                            "max": np.max(pixels_in_circle),
-                            "stdev": np.std(pixels_in_circle),
-                        })
+                            "filename": [filename],
+                            "image": [index],
+                            "position": [int(position_index)],
+                            "timepoint": [timepoint_index],
+                            "z_level": [zstack_index],
+                            "no_GUVs": [len(measurement_circles)],
+                            "average": [np.mean(pixels_in_circle)],
+                            "median": [np.median(pixels_in_circle)],
+                            "min": [np.min(pixels_in_circle)],
+                            "max": [np.max(pixels_in_circle)],
+                            "stdev": [np.std(pixels_in_circle)],
+                        }
+                    )
 
                     position_df = pd.concat([position_df, new_row], ignore_index=True)
 
