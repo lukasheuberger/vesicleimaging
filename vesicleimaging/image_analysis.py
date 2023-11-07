@@ -585,8 +585,8 @@ def measure_circle_intensity(
                     index,
                     distance_from_border,
                     filename,
-                    position_index,
                     average_all_z,
+                    position_index
                 )
                 results_df = pd.concat([results_df, position_df])
 
@@ -609,9 +609,9 @@ def iterate_measure(
     index: int,
     distance_from_border: int,
     filename: str,
+    average_all_z: bool,
     position_index: int = 0,
-    average_all_z: bool = True,
-):
+    ):
     """
     The iterate_measure function takes a list of images and circles as input.
         Args:
@@ -645,7 +645,6 @@ def iterate_measure(
     intensity_per_circle = []
     circles_per_image = []
 
-
     position_df = pd.DataFrame(
         columns=[
             "image",
@@ -658,6 +657,15 @@ def iterate_measure(
             "stdev",
         ]
     )
+    # print(f'average_all_z: {average_all_z}')
+
+    if filename is not None:  # combine this with the other if possible
+        filename = filename.replace(".czi", "")
+    else:
+        try:
+            filename = image_metadata[index][0]["Filename"].replace(".czi", "")
+        except KeyError:
+            filename = image_metadata[index]["Filename"].replace(".czi", "")
 
     for timepoint_index, timepoint_img in enumerate(img):
         # print(f'timepoint_index: {timepoint_index}, timepoint_img.shape: {timepoint_img.shape}')
@@ -686,29 +694,15 @@ def iterate_measure(
                     f"- number of circles measured in this image: {len(measurement_circles)}"
                 )
 
-                # measurement_radius = radius_px - distance_from_border
-
                 average_per_circle, pixels_in_circle = calculate_average_per_circle(
                     zstack_img, measurement_circles, distance_from_border
                 )
                 pixels_per_timestep.extend(pixels_in_circle)
 
-                if not average_all_z:
+                if average_all_z is False:
                     # print('each z-level will be evaluated separately')
                     # circles_per_image.append(average_per_circle)
                     # print(f'average_per_circle: {average_per_circle}')
-
-                    if filename is not None:  # combine this with the other if possible
-                        filename = filename.replace(".czi", "")
-                    else:
-                        try:
-                            filename = image_metadata[index][0]["Filename"].replace(
-                                ".czi", ""
-                            )
-                        except KeyError:
-                            filename = image_metadata[index]["Filename"].replace(
-                                ".czi", ""
-                            )
 
                     new_row = pd.DataFrame(
                         {
@@ -725,44 +719,35 @@ def iterate_measure(
                             "stdev": [np.std(pixels_in_circle)],
                         }
                     )
+                    print("new position saved")
 
                     position_df = pd.concat([position_df, new_row], ignore_index=True)
+
             except (TypeError, IndexError):
                  print("skipped this image, no circles found")
 
-            if average_all_z:
-                # TODO speed this up, it terribly slow
-                # print('z-levels will be averaged')
-                if filename is not None:  # combine this with the other if possible
-                    filename = filename.replace(".czi", "")
-                else:
-                    try:
-                        filename = image_metadata[index][0]["Filename"].replace(
-                            ".czi", ""
-                        )
-                    except KeyError:
-                        filename = image_metadata[index]["Filename"].replace(
-                            ".czi", ""
-                        )
+        if average_all_z:
+            # TODO speed this up, it terribly slow
+            # print('z-levels will be averaged')
 
-                new_row = pd.DataFrame(
-                    {
-                        "filename": [filename],
-                        "image": [index],
-                        "position": [int(position_index)],
-                        "timepoint": [timepoint_index],
-                        "z_level": ['averaged'],
-                        "no_GUVs": [len(measurement_circles)],
-                        "average": [np.mean(pixels_per_timestep)],
-                        "median": [np.median(pixels_per_timestep)],
-                        "min": [np.min(pixels_per_timestep)],
-                        "max": [np.max(pixels_per_timestep)],
-                        "stdev": [np.std(pixels_per_timestep)],
-                    }
-                )
-                print('new position saved')
+            new_row = pd.DataFrame(
+                {
+                    "filename": [filename],
+                    "image": [index],
+                    "position": [int(position_index)],
+                    "timepoint": [timepoint_index],
+                    "z_level": ['averaged'],
+                    "no_GUVs": [len(measurement_circles)],
+                    "average": [np.mean(pixels_per_timestep)],
+                    "median": [np.median(pixels_per_timestep)],
+                    "min": [np.min(pixels_per_timestep)],
+                    "max": [np.max(pixels_per_timestep)],
+                    "stdev": [np.std(pixels_per_timestep)],
+                }
+            )
+            print('new position saved')
 
-                position_df = pd.concat([position_df, new_row], ignore_index=True)
+            position_df = pd.concat([position_df, new_row], ignore_index=True)
 
             # except (TypeError, IndexError):
             #     print("skipped this image, no circles found")
