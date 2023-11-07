@@ -46,7 +46,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'vesimaging'
+project = 'vesicleimaging'
 copyright = "2023, Lukas Heuberger"
 author = "Lukas Heuberger"
 
