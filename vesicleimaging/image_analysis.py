@@ -42,21 +42,29 @@ def process_image(
         dp_val = 1.5
     elif method == cv2.HOUGH_GRADIENT:
         # print('method is HOUGH_GRADIENT')
-        dp_val = 2
+        dp_val = 1
     # print(f"dp_val: {dp_val}")
 
-    dp_val=1.5
+    dp_val=2
 
     # Apply Gaussian blur to reduce noise
-    gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 1.5)
-    # plt.imshow(gray_blurred)
+    gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 900)
+    # gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 1.5)
+    plt.imshow(gray_blurred)
+    # print(f'gray_blurred.shape: {gray_blurred.shape}')
+
+
+    (thresh, im_bw) = cv2.threshold(gray_blurred, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    # plt.imshow(im_bw)
+
+
     # print(f'output_img.shape:{output_img.shape}')
     circle = cv2.HoughCircles(
-        gray_blurred,
+        im_bw,
         method,
         # cv2.HOUGH_GRADIENT_ALT,  # alternative: HOUGH_GRADIENT
         dp=dp_val,
-        minDist=minmax[1] / 2,
+        minDist=minmax[1], #/ 2,
         minRadius=minmax[0],
         maxRadius=minmax[1],
         param1=param1,
@@ -131,7 +139,7 @@ def detect_circles(
     print("@param2: circle 'perfectness' measure. The closer it to 1, the better "
           "shaped circles algorithm selects. In most cases 0.9 should be fine")
     print("-------------------------")
-    print(" ")
+    print(" ") #todo change this based on the method
 
     if isinstance(image_data, list) is False:
         raise ValueError("image_data must be a list")
@@ -700,6 +708,7 @@ def iterate_measure(
                 pixels_per_timestep.extend(pixels_in_circle)
 
                 if average_all_z is False:
+                    #todo this somehow messes up if the image is no a zstack
                     # print('each z-level will be evaluated separately')
                     # circles_per_image.append(average_per_circle)
                     # print(f'average_per_circle: {average_per_circle}')
