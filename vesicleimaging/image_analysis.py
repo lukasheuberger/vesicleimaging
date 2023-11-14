@@ -49,12 +49,13 @@ def process_image(
 
     # Apply Gaussian blur to reduce noise
     gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 900)
+    im_bw = cv2.GaussianBlur(zstack_img, (9, 9), 900)
     # gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 1.5)
-    plt.imshow(gray_blurred)
+    # plt.imshow(gray_blurred)
     # print(f'gray_blurred.shape: {gray_blurred.shape}')
 
 
-    (thresh, im_bw) = cv2.threshold(gray_blurred, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    #(thresh, im_bw) = cv2.threshold(gray_blurred, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
     # plt.imshow(im_bw)
 
 
@@ -696,6 +697,8 @@ def iterate_measure(
                     measurement_circles = circles[index][position_index][
                         timepoint_index
                     ][zstack_index]
+                else:
+                    measurement_circles = []
                 # print(f'measurement_circles: {measurement_circles}')
 
                 print(
@@ -720,7 +723,7 @@ def iterate_measure(
                             "position": [int(position_index)],
                             "timepoint": [timepoint_index],
                             "z_level": [zstack_index],
-                            "no_GUVs": [len(measurement_circles)],
+                            # "no_GUVs": [len(measurement_circles)], (somehow breaks this)
                             "average": [np.mean(pixels_in_circle)],
                             "median": [np.median(pixels_in_circle)],
                             "min": [np.min(pixels_in_circle)],
@@ -746,11 +749,11 @@ def iterate_measure(
                     "position": [int(position_index)],
                     "timepoint": [timepoint_index],
                     "z_level": ['averaged'],
-                    "no_GUVs": [len(measurement_circles)],
+                    # "no_GUVs": [len(measurement_circles)], (somehow breaks this)
                     "average": [np.mean(pixels_per_timestep)],
                     "median": [np.median(pixels_per_timestep)],
-                    "min": [np.min(pixels_per_timestep)],
-                    "max": [np.max(pixels_per_timestep)],
+                    #"min": [np.min(pixels_per_timestep)],
+                    #"max": [np.max(pixels_per_timestep)],
                     "stdev": [np.std(pixels_per_timestep)],
                 }
             )
