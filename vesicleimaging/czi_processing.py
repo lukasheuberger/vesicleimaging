@@ -5,7 +5,7 @@ from .imgfileutils import get_array_czi
 import concurrent.futures
 import czifile
 import xml.etree.ElementTree as ET
-
+import multiprocessing
 
 def write_metadata_xml(path: str,
                        files: list):
@@ -56,6 +56,25 @@ def write_metadata_xml(path: str,
         print('Write special CZI XML metainformation for: ', xmlfile)
 
 
+def process_file(file):
+    """
+    The process_file function takes a file path as input and returns the image data,
+     metadata, and additional metadata.
+    The function uses the get_array_czi function from czifile to extract these three
+     pieces of information from a .czi file.
+
+
+    Args:
+        file: Specify the file that is being processed
+
+    Returns:
+        A tuple of three values: img_data, metadata, and add_metadata
+    """
+
+    print(f'processing file: {file}')
+    image_data, image_metadata, image_add_metadata = get_array_czi(file, return_addmd=False)
+    return image_data, image_metadata, image_add_metadata
+
 def load_image_data(files: list, write_metadata: bool = False):
     """
     The load_image_data function loads the image data from a list of files.
@@ -72,35 +91,20 @@ def load_image_data(files: list, write_metadata: bool = False):
     Returns:
         Three values: all_img_data, all_metadata, and all_additional metadata
     """
-    # todo make that this only takes czi images
 
     all_img_data = []
     all_metadata = []
     all_add_metadata = []
 
-    files = [file for file in files if file.endswith('.czi')]
-
-    def process_file(file):
-        """
-        The process_file function takes a file path as input and returns the image data,
-         metadata, and additional metadata.
-        The function uses the get_array_czi function from czifile to extract these three
-         pieces of information from a .czi file.
+    czi_files = [file for file in files if file.endswith('.czi')]
 
 
-        Args:
-            file: Specify the file that is being processed
 
-        Returns:
-            A tuple of three values: img_data, metadata, and add_metadata
-        """
+    #with concurrent.futures.ThreadPoolExecutor() as executor:
+        #results = list(executor.map(process_file, czi_files))
 
-        print(f'processing file: {file}')
-        image_data, image_metadata, image_add_metadata = get_array_czi(file, return_addmd=False)
-        return image_data, image_metadata, image_add_metadata
-
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = list(executor.map(process_file, files))
+    with multiprocessing.Pool() as pool:
+        results = pool.map(process_file, czi_files)
 
     for img_data, metadata, add_metadata in results:
         all_img_data.append(img_data)
