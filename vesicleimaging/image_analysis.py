@@ -723,7 +723,7 @@ def iterate_measure(
                             "position": [int(position_index)],
                             "timepoint": [timepoint_index],
                             "z_level": [zstack_index],
-                            # "no_GUVs": [len(measurement_circles)], (somehow breaks this)
+                            "no_GUVs": [len(measurement_circles)],
                             "average": [np.mean(pixels_in_circle)],
                             "median": [np.median(pixels_in_circle)],
                             "min": [np.min(pixels_in_circle)],
@@ -749,11 +749,11 @@ def iterate_measure(
                     "position": [int(position_index)],
                     "timepoint": [timepoint_index],
                     "z_level": ['averaged'],
-                    # "no_GUVs": [len(measurement_circles)], (somehow breaks this)
+                    "no_GUVs": [len(measurement_circles)],
                     "average": [np.mean(pixels_per_timestep)],
                     "median": [np.median(pixels_per_timestep)],
-                    #"min": [np.min(pixels_per_timestep)],
-                    #"max": [np.max(pixels_per_timestep)],
+                    "min": [np.min(pixels_per_timestep)],
+                    "max": [np.max(pixels_per_timestep)],
                     "stdev": [np.std(pixels_per_timestep)],
                 }
             )
