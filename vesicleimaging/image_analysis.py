@@ -13,8 +13,32 @@ from .image_operations import convert8bit, disp_scaling
 
 #todo make it also plot images when no circles are found
 
+def are_centers_close(circle1, circle2, threshold=10):
+    # Calculate the distance between the centers of two circles
+    x1, y1, _ = circle1
+    x2, y2, _ = circle2
+    distance = np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+    return distance <= threshold
+
+def filter_circles(circles, keep_smaller=True):
+    filtered = []
+    for circle in circles:
+        close = False
+        for other in filtered:
+            if are_centers_close(circle, other):
+                close = True
+                if keep_smaller and (circle[2] < other[2]):
+                    filtered.remove(other)
+                    filtered.append(circle)
+                break
+        if not close:
+            filtered.append(circle)
+    return filtered
+
+
+
 def process_image(
-    zstack_img, output_img, minmax, param1, param2, plot=False, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
+    zstack_img, output_img, minmax, initial_param1, initial_param2, plot=False, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
     """
     The process_image function takes in a zstack image, an output image,
     the channel to detect on (0-2), the min and max radius of the circles
@@ -42,49 +66,87 @@ def process_image(
         dp_val = 1.5
     elif method == cv2.HOUGH_GRADIENT:
         # print('method is HOUGH_GRADIENT')
-        dp_val = 1
+        dp_val = 1.5
     # print(f"dp_val: {dp_val}")
 
-    dp_val=2
+    # # Apply Gaussian blur to reduce noise
+    # gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)  # alternative 900 at the end instead of 2
+    #
+    # # todo make this optional: if threshold:
+    # _, im_bw = cv2.threshold(gray_blurred, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    # # plt.imshow(im_bw)
+    #
+    # # Adaptive Thresholding (doesn't really work)
+    # #im_bw = cv2.adaptiveThreshold(gray_blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    #
+    # # Edge Detection (optional, uncomment if needed)
+    # # edges = cv2.Canny(gray_blurred, 10, 200)
+    # # im_edges = np.uint8(edges)
+    #
+    # # fig, (ax1, ax2, ax3) = plt.subplots(1, 3) # todo put these next to output image
+    # # ax1.imshow(gray_blurred)
+    # # ax2.imshow(im_edges)
+    # # ax3.imshow(im_bw)
+    #
+    # # print(f'output_img.shape:{output_img.shape}')
+    # circle = cv2.HoughCircles(
+    #     im_bw,
+    #     method,
+    #     dp=dp_val,
+    #     minDist=minmax[1],
+    #     minRadius=minmax[0],
+    #     maxRadius=minmax[1],
+    #     param1=param1,
+    #     param2=param2,
+    # )
 
-    # Apply Gaussian blur to reduce noise
-    gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 900)
-    im_bw = cv2.GaussianBlur(zstack_img, (9, 9), 900)
-    # gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 1.5)
-    # plt.imshow(gray_blurred)
-    # print(f'gray_blurred.shape: {gray_blurred.shape}')
+    def detect_circles(param1, param2):
+        # Function to detect circles with given parameters
+        gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
+        _, im_bw = cv2.threshold(gray_blurred, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+
+        #fig, (ax1, ax2) = plt.subplots(1, 2) # todo put these next to output image
+        #ax1.imshow(gray_blurred)
+        #ax2.imshow(im_bw)
+        #plt.show()
+
+        return cv2.HoughCircles(gray_blurred, method, 1.5, minDist=minmax[1], minRadius=minmax[0], maxRadius=minmax[1], param1=param1, param2=param2)
+
+    # Try initial detection
+    circle = detect_circles(initial_param1, initial_param2)
+
+    # If no circles detected, start adjusting parameters
+    if circle is None:
+        for param1 in range(3, 301, 10):
+            circle = detect_circles(param1, initial_param2)
+            if circle is not None:
+                break
+
+        # If still no circles, adjust param2
+        if circle is None:
+            param2 = initial_param2
+            while param2 > 0.6 and circle is None:
+                param2 -= 0.1
+                for param1 in range(3, 301, 10):
+                    circle = detect_circles(param1, param2)
+                    if circle is not None:
+                        break
 
 
-    #(thresh, im_bw) = cv2.threshold(gray_blurred, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    # plt.imshow(im_bw)
-
-
-    # print(f'output_img.shape:{output_img.shape}')
-    circle = cv2.HoughCircles(
-        im_bw,
-        method,
-        # cv2.HOUGH_GRADIENT_ALT,  # alternative: HOUGH_GRADIENT
-        dp=dp_val,
-        minDist=minmax[1], #/ 2,
-        minRadius=minmax[0],
-        maxRadius=minmax[1],
-        param1=param1,
-        param2=param2,
-    )
     # print(circle)
     if circle is not None:
         # Round off the (x, y) coordinates and radius to integers
-        circle = np.round(circle[0, :]).astype(int)
+        circle = np.round(circle[0, :]).astype(np.int32)
+
+        # Filter circles to remove overlapping circles
+        circle = filter_circles(circle, keep_smaller=True)
 
         if plot is True or hough_saving is True:
             for (x, y, radius) in circle:
                 # Draw the circle on the output image
                 cv2.circle(output_img, (x, y), radius, (255, 255, 255), 2)
-
                 # Draw a centered rectangle at the center of the circle
-                cv2.rectangle(
-                    output_img, (x - 5, y - 5), (x + 5, y + 5), (255, 255, 255), -1
-                )
+                cv2.rectangle(output_img, (x - 5, y - 5), (x + 5, y + 5), (255, 255, 255), -1)
 
         return circle, output_img
     else:
@@ -723,7 +785,7 @@ def iterate_measure(
                             "position": [int(position_index)],
                             "timepoint": [timepoint_index],
                             "z_level": [zstack_index],
-                            "no_GUVs": [len(measurement_circles)],
+                            #"no_GUVs": [len(measurement_circles)],
                             "average": [np.mean(pixels_in_circle)],
                             "median": [np.median(pixels_in_circle)],
                             "min": [np.min(pixels_in_circle)],
@@ -749,11 +811,11 @@ def iterate_measure(
                     "position": [int(position_index)],
                     "timepoint": [timepoint_index],
                     "z_level": ['averaged'],
-                    "no_GUVs": [len(measurement_circles)],
+                    #"no_GUVs": [len(measurement_circles)],
                     "average": [np.mean(pixels_per_timestep)],
                     "median": [np.median(pixels_per_timestep)],
-                    "min": [np.min(pixels_per_timestep)],
-                    "max": [np.max(pixels_per_timestep)],
+                    #"min": [np.min(pixels_per_timestep)],
+                    #"max": [np.max(pixels_per_timestep)],
                     "stdev": [np.std(pixels_per_timestep)],
                 }
             )
