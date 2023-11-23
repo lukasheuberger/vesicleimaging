@@ -97,14 +97,11 @@ def load_image_data(files: list, write_metadata: bool = False):
     all_add_metadata = []
 
     czi_files = [file for file in files if file.endswith('.czi')]
+    print(f'opening {len(czi_files)} czi files')
 
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(process_file, czi_files))
 
-
-    #with concurrent.futures.ThreadPoolExecutor() as executor:
-        #results = list(executor.map(process_file, czi_files))
-
-    with multiprocessing.Pool() as pool:
-        results = pool.map(process_file, czi_files)
 
     for img_data, metadata, add_metadata in results:
         all_img_data.append(img_data)
