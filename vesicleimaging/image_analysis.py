@@ -102,18 +102,17 @@ def process_image(
 
     def detect_circles(param1, param2):
         # Function to detect circles with given parameters
-        img = (zstack_img/256).astype('uint8')
         # gray_blurred = cv2.GaussianBlur(zstack_img.astype('uint8'), (0,0), 2) # alternative (9,9), 2
-        gray_blurred = cv2.GaussianBlur(img, (0,0), 2) # alternative (9,9), 2
+        gray_blurred = cv2.GaussianBlur(zstack_img, (0,0), 2) # alternative (9,9), 2
         # gray_blurred = gray_blurred.astype("uint8")
-        retval, im_bw = cv2.threshold(gray_blurred, 100, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        retval, im_thresh = cv2.threshold(gray_blurred, 100, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
         # print("retval: ", retval)
         # print('mean pixel intensity: ', np.mean(zstack_img))
         # print('mean pixel intensity: ', np.mean(im_bw))
 
         # Edge Detection (optional, uncomment if needed)
-        edges = cv2.Canny(im_bw, 200,255)
+        edges = cv2.Canny(im_thresh, 200,255)
         #edges2 = cv2.Canny(gray_blurred, 1,150)
         #edges3 = cv2.Canny(im_bw, 50,150)
         # im_edges = np.uint8(edges)
@@ -127,7 +126,7 @@ def process_image(
             ax2.set_title('GaussianBlur')
             ax2.imshow(gray_blurred, cmap='viridis')
             ax3.set_title('threshold')
-            ax3.imshow(im_bw, cmap='viridis')
+            ax3.imshow(im_thresh, cmap='viridis')
             ax4.set_title('edges')
             ax4.imshow(edges, cmap='viridis')
             ax1.set_axis_off()
@@ -138,7 +137,7 @@ def process_image(
 
         # gray_blurred = (gray_blurred / 256).astype("uint8")
         # todo make choseable if im_bw or gray_blurred
-        return cv2.HoughCircles(gray_blurred, method, 1.5, minDist=minmax[1], minRadius=minmax[0], maxRadius=minmax[1], param1=param1, param2=param2)
+        return cv2.HoughCircles(im_thresh, method, 1.5, minDist=minmax[1], minRadius=minmax[0], maxRadius=minmax[1], param1=param1, param2=param2)
 
     # Try initial detection
     circle = detect_circles(initial_param1, initial_param2)
@@ -270,9 +269,11 @@ def detect_circles(
             filename = image_metadata[index]["Filename"]
         print(f"file {index + 1} ({filename}) is being processed...")
 
-        # if img.dtype == "uint16":
+        if img.dtype == "uint16":
             # img = convert8bit(img)
             # img = (img / 256).astype("uint8")
+            img = (img/256).astype('uint8')
+
 
         # print(f'img.shape: {img.shape}')
 
@@ -430,7 +431,8 @@ def iterate_circles(
 
                     # todo check if this works with this
                     # zero or needs try except to work
-                    temp_filename = image_metadata[index][0]["Filename"].replace(
+                    #temp_filename = image_metadata[index][0]["Filename"].replace(
+                    temp_filename = image_metadata[index]["Filename"].replace(
                         ".czi", ""
                     )
                     output_filename = "".join(
