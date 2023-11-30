@@ -102,35 +102,72 @@ def process_image(
 
     def detect_circles(param1, param2):
         # Function to detect circles with given parameters
-        gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)
-        _, im_bw = cv2.threshold(gray_blurred, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        img = (zstack_img/256).astype('uint8')
+        # gray_blurred = cv2.GaussianBlur(zstack_img.astype('uint8'), (0,0), 2) # alternative (9,9), 2
+        gray_blurred = cv2.GaussianBlur(img, (0,0), 2) # alternative (9,9), 2
+        # gray_blurred = gray_blurred.astype("uint8")
+        retval, im_bw = cv2.threshold(gray_blurred, 100, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 
-        #fig, (ax1, ax2) = plt.subplots(1, 2) # todo put these next to output image
-        #ax1.imshow(gray_blurred)
-        #ax2.imshow(im_bw)
-        #plt.show()
+        # print("retval: ", retval)
+        # print('mean pixel intensity: ', np.mean(zstack_img))
+        # print('mean pixel intensity: ', np.mean(im_bw))
 
+        # Edge Detection (optional, uncomment if needed)
+        edges = cv2.Canny(im_bw, 200,255)
+        #edges2 = cv2.Canny(gray_blurred, 1,150)
+        #edges3 = cv2.Canny(im_bw, 50,150)
+        # im_edges = np.uint8(edges)
+
+        # todo make this optional from jupyter
+        plot = True
+        if plot:
+            fig, [(ax1, ax2), (ax3, ax4)] = plt.subplots(2, 2) # todo put these next to output image
+            ax1.set_title('original')
+            ax1.imshow(zstack_img, cmap='viridis')
+            ax2.set_title('GaussianBlur')
+            ax2.imshow(gray_blurred, cmap='viridis')
+            ax3.set_title('threshold')
+            ax3.imshow(im_bw, cmap='viridis')
+            ax4.set_title('edges')
+            ax4.imshow(edges, cmap='viridis')
+            ax1.set_axis_off()
+            ax2.set_axis_off()
+            ax3.set_axis_off()
+            ax4.set_axis_off()
+            plt.show()
+
+        # gray_blurred = (gray_blurred / 256).astype("uint8")
+        # todo make choseable if im_bw or gray_blurred
         return cv2.HoughCircles(gray_blurred, method, 1.5, minDist=minmax[1], minRadius=minmax[0], maxRadius=minmax[1], param1=param1, param2=param2)
 
     # Try initial detection
     circle = detect_circles(initial_param1, initial_param2)
 
-    # If no circles detected, start adjusting parameters
-    if circle is None:
-        for param1 in range(3, 301, 10):
-            circle = detect_circles(param1, initial_param2)
-            if circle is not None:
-                break
+    optimization = False
+    if optimization:
 
-        # If still no circles, adjust param2
+        # todo fix this, doesn't stop when circle is found or end is reached
+        # If no circles detected, start adjusting parameters
         if circle is None:
-            param2 = initial_param2
-            while param2 > 0.6 and circle is None:
-                param2 -= 0.1
-                for param1 in range(3, 301, 10):
-                    circle = detect_circles(param1, param2)
-                    if circle is not None:
-                        break
+            print('no circles detected, adjusting params')
+            for param1 in range(3, 501, 9):
+                print(f"param1: {param1}")
+                circle = detect_circles(param1, initial_param2)
+                if circle is not None:
+                    break
+
+            # If still no circles, adjust param2
+            if circle is None:
+                param2 = initial_param2
+                print(f"no circles detected, adjusting param2: {param2}")
+                while param2 > 0.5 and circle is None:
+                    param2 -= 0.1
+                    for param1 in range(3, 301, 10):
+                        circle = detect_circles(param1, param2)
+                        print(f"param1: {param1}, param2: {param2}")
+                        if circle is not None:
+                            print(f'----------------> new params found: {param1}, {param2}')
+                            break
 
 
     # print(circle)
@@ -139,7 +176,7 @@ def process_image(
         circle = np.round(circle[0, :]).astype(np.int32)
 
         # Filter circles to remove overlapping circles
-        circle = filter_circles(circle, keep_smaller=True)
+        # circle = filter_circles(circle, keep_smaller=True)
 
         if plot is True or hough_saving is True:
             for (x, y, radius) in circle:
@@ -233,26 +270,32 @@ def detect_circles(
             filename = image_metadata[index]["Filename"]
         print(f"file {index + 1} ({filename}) is being processed...")
 
-        if img.dtype == "uint16":
-            img = convert8bit(img)
+        # if img.dtype == "uint16":
+            # img = convert8bit(img)
+            # img = (img / 256).astype("uint8")
 
         # print(f'img.shape: {img.shape}')
 
         if len(img.shape) == 5:
-            print("5dim, only one position")
+            # print("5dim, only one position")
 
             # detection_img = img[detection_channel]
             # print(f'detection_img.shape: {detection_img.shape}')
             # directly iterate through timepoints, zstack
+            # test = img[detection_channel][0][0]
+            # print(np.max(test))
+            # plt.imshow(test, cmap="plasma")
+            # plt.show()
 
             timepoint_circles = iterate_circles(*args, index, img)
             # print([timepoint_circles])
+
 
             circles.append([timepoint_circles])
             # put in brackets to make same form as if it has positions, just with a one first
         elif len(img.shape) == 6:
             print("6dim, multiple positions")
-            print(f"img.shape:{img.shape}")
+            # print(f"img.shape:{img.shape}")
             # iterate through positions first, then timepoints & zstack
 
             position_circles = []
@@ -314,6 +357,10 @@ def iterate_circles(
         A list of lists of circles (x, y, r)
     """
 
+    # test=img[detection_channel][0][0]
+    # plt.imshow(test, cmap='plasma')
+    # plt.show()
+
     detection_img = img[detection_channel]
 
     timepoint_circles = []
@@ -339,6 +386,8 @@ def iterate_circles(
                 ].copy()
 
             # print(f'output_img.shape: {output_img.shape}')
+
+            # plt.imshow(zstack_img, cmap='viridis')
 
             circle, output_img = process_image(
                 zstack_img, output_img, minmax, param1, param2, plot, method, hough_saving)
