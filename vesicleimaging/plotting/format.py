@@ -19,3 +19,33 @@ def formatLH(figsizex=2, figsizey=2, frame=False):
     mpl.rcParams['axes.spines.right'] = frame
     mpl.rcParams['axes.spines.top'] = frame
     mpl.rcParams["errorbar.capsize"] = 5
+
+def plotProps():
+    # todo find out how to implement this in a standard template
+    boxprops = dict(linewidth=1)
+    medianprops = dict(linewidth=2, color="royalblue")
+    flierprops = dict(markersize=2)
+    whiskerprops = dict(color="black")
+    
+    PROPS = {
+        "boxprops": {"facecolor": "none", "edgecolor": "black"},
+        "medianprops": {"color": "royalblue"},
+        "whiskerprops": {"color": "black"},
+        "capprops": {"color": "black"},
+    }
+
+    # examples:
+
+    # sns.catplot(kind='box', data=results[(results['FDG'] == 'mPolymersome')&(results['bGal']=='polymersomes')],
+    #             x='pore', y='Mean', col='illumination', sharey=True, width = 0.3, **PROPS)
+    #
+    # sns.catplot(
+    #     kind="box",
+    #     data=mPolybPoly_data,
+    #     x="pore",
+    #     y="Mean",
+    #     sharey=True,
+    #     width=0.3,
+    #     **PROPS
+    # )
+    # sns.stripplot(data=mPolybPoly_data, x="pore", y="Mean", size=6, color="blue", alpha=0.3)
