@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, barh=.05, fontsize=None, maxasterix=3, linewidth=1, axis=None):
+def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, barh=.05, fontsize=None, maxasterix=3, linewidth=1, axis=None, downdash=True):
     """
     The barplot_annotate_brackets function adds p-values to the barplot.
 
@@ -71,22 +71,36 @@ def barplot_annotate_brackets(num1, num2, data, height, down = [0,0], dh=.05, ba
 
     # Draw the bar
     if axis is not None:
-        axis.plot(barx, bary, c='black', lw=linewidth)
+        if downdash:
+            axis.plot(barx, bary, c='black', lw=linewidth)
+        if downdash is False:
+            bary = [y, y + barh, y + barh, y]
+            axis.plot(barx, bary, c='black', lw=linewidth)
+
         # Display the text in the middle of the bar
         axis.text(*mid, text, **kwargs)
+
+
     else:
-        plt.plot(barx, bary, c='black', lw=linewidth)
+        if downdash:
+            plt.plot(barx, bary, c='black', lw=linewidth)
+        if downdash is False:
+            bary = [y, y, y, y]
+            plt.plot(barx, bary, c='black', lw=linewidth)
+
+        # plt.plot(barx, bary, c='black', lw=linewidth)
         # Display the text in the middle of the bar
         plt.text(*mid, text, **kwargs)
 
 
-
-
+# todo cleanup
+# todo consolidate cases
 
 
 if __name__ == '__main__':
     data = np.array([[1, 2, 3, 4, 5, 6], [4, 5, 6, 7, 8, 9]])
     plt.bar(x=[1, 2, 3, 4, 5, 6], height=data.mean(axis=0))# yerr=data.std(axis=0))
-    barplot_annotate_brackets(1, 2, data = '***', height=[1,5], down=[1,2], linewidth=12)
+    barplot_annotate_brackets(1, 2, data = '***', height=[1,5], down=[1,2], linewidth=12, downdash = False)
+
 
     plt.show()
