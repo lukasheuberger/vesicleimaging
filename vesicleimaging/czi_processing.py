@@ -5,7 +5,6 @@ from .imgfileutils import get_array_czi
 import concurrent.futures
 import czifile
 import xml.etree.ElementTree as ET
-import multiprocessing
 
 def write_metadata_xml(path: str,
                        files: list):
