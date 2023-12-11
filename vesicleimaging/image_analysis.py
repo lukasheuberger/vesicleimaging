@@ -35,7 +35,7 @@ def filter_circles(circles, keep_smaller=True):
 
 
 def process_image(
-    zstack_img, output_img, minmax, initial_param1, initial_param2, detecton, plot=False, debug=False, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
+    zstack_img, output_img, minmax, initial_param1, initial_param2, detecton='Gauss', plot=False, debug=False, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
     """
     The process_image function takes in a zstack image, an output image,
     the channel to detect on (0-2), the min and max radius of the circles
@@ -57,6 +57,7 @@ def process_image(
     Returns:
         The circles, the output image and a list of all circles
     """
+    # print('detecton: ', detecton)
 
     #if dp_val is None:
     if method == cv2.HOUGH_GRADIENT_ALT:
@@ -144,7 +145,7 @@ def process_image(
             # print('detect on edges')
             img_to_detect_on = image_edges
         else:
-            print('unknown detection method, please choose between Gauss, threshold and edges')
+            print('unknown detection method, please choose between original, Gauss, threshold and edges')
 
         # gray_blurred = (gray_blurred / 256).astype("uint8")
         return cv2.HoughCircles(img_to_detect_on, method, 1.5, minDist=minmax[1], minRadius=minmax[0], maxRadius=minmax[1], param1=param1, param2=param2)
@@ -152,7 +153,8 @@ def process_image(
     # Try initial detection
     circle = detect_circles(initial_param1, initial_param2)
 
-    optimization = True #todo make outside changeable
+    optimization = False #todo make outside changeable
+    #todo make for both detection methods (HOUGH_GRADIENT_ALT and HOUGH_GRADIENT)
     #todo somehow combine with next statement. good test: 23-79
 
     if circle is None and optimization:
@@ -189,7 +191,7 @@ def process_image(
         circle = np.round(circle[0, :]).astype(np.int32)
 
         # Filter circles to remove overlapping circles
-        circle = filter_circles(circle, keep_smaller=True)
+        # circle = filter_circles(circle, keep_smaller=True) #todo needs fixing
 
         if plot is True or hough_saving is True:
             for (x, y, radius) in circle:
@@ -909,8 +911,8 @@ def detect_circles_tif(
     plot=False,
     hough_saving=False,
     debug=False,
+    detecton='original'
 ):
-
     """
     The detect_circles_tif function takes in a list of image data, filenames,
     param_array (a list of parameters for the HoughCircles function),
@@ -931,11 +933,10 @@ def detect_circles_tif(
     Returns:
         A list of circles
     """
-
     circles = []
 
     for index, image in enumerate(image_data):
-        print(index)
+        # print(index)
         filename = filenames[index]
         print(f"file {index + 1} ({filename}) is being processed...")
 
@@ -944,7 +945,7 @@ def detect_circles_tif(
 
         output_img = image.copy()
         circle, output_img = process_image(
-            image, output_img, minmax, param1, param2, plot
+            image, output_img, minmax, param1, param2, detecton, plot, debug
         )
 
         if circle is not None:
