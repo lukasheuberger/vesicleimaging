@@ -555,9 +555,44 @@ def custom_meshgrid(x_min, x_max, y_min, y_max):
 
     return ys, xs
 
+# @njit # todo make numba compliant
+def calculate_average_outside_circles(zstack_img, measurement_circles, radius_distance=20, plot=False):
+    """
+    Calculate the average pixel intensity outside the specified circles.
 
-@njit
-def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_border):
+    Args:
+        zstack_img: The image to analyze
+        measurement_circles: List of circles (x, y, radius)
+
+    Returns:
+        The average intensity outside the circles
+    """
+
+    mask = np.zeros(zstack_img.shape[:2], dtype=bool)  # Assuming zstack_img is 2D
+
+    for circle in measurement_circles:
+        x_0, y_0, radius_px = circle
+        measurement_radius = radius_px + radius_distance
+        ys, xs = np.ogrid[:zstack_img.shape[0], :zstack_img.shape[1]]
+        mask |= (xs - x_0) ** 2 + (ys - y_0) ** 2 <= measurement_radius**2
+
+    # Invert the mask to select the area outside the circles
+    inverted_mask = ~mask
+
+    # Plot the mask
+    if plot:
+        plt.imshow(inverted_mask, cmap='gray')
+        plt.title("Mask of Area Outside Circles")
+        plt.show()
+
+    # Calculate the average intensity outside the circles
+    average_intensity_outside = np.mean(zstack_img[inverted_mask])
+
+    return average_intensity_outside
+    # todo adapt this masking approach to normal measurement too
+
+# @njit # todo make numba compliant again
+def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_border, subtract_bg=False):
     """
     The calculate_average_per_circle function takes a zstack image and a list of circles,
     and returns the average pixel intensity per circle. The function also returns an array
@@ -579,6 +614,9 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
     average_per_circle = []
     # pixels_in_circle_list = []
     # print(measurement_circles)
+
+    bg_intensity = calculate_average_outside_circles(zstack_img, measurement_circles)
+    # print(f'bg_intensity: {bg_intensity}')
 
     for circle in measurement_circles:
         # print(f'circle: {circle}')
@@ -612,6 +650,7 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
         pixels_in_circle_array = np.empty_like(
             masked_ys, dtype=zstack_img.dtype
         )  # Renamed variable
+
         # pixels_in_circle = np.empty_like(masked_ys, dtype=zstack_img.dtype)
         for i in range(masked_ys.size):
             pixels_in_circle_array[i] = zstack_img[masked_ys[i], masked_xs[i]]
@@ -620,7 +659,12 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
         # average_per_circle.append(np.mean(pixels_in_circle))
         average_per_circle.append(np.mean(pixels_in_circle_array))
 
-    return average_per_circle, pixels_in_circle_array
+    #subtract_bg = True
+    #if subtract_bg:
+    #    average_per_circle = bg_intensity-average_per_circle
+    #    print(average_per_circle)
+
+    return average_per_circle, pixels_in_circle_array, bg_intensity
 
 
 def measure_circle_intensity(
@@ -738,7 +782,7 @@ def measure_circle_intensity(
 
     if excel_saving:
         results_df.to_excel("analysis.xlsx")
-        print("excel saved")
+        print("excel saved") # todo change filename
 
     return results_df  # , intensity_per_circle
 
@@ -838,7 +882,7 @@ def iterate_measure(
                     f"- number of circles measured in this image: {len(measurement_circles)}"
                 )
 
-                average_per_circle, pixels_in_circle = calculate_average_per_circle(
+                average_per_circle, pixels_in_circle, outside_intensity = calculate_average_per_circle(
                     zstack_img, measurement_circles, distance_from_border
                 )
                 pixels_per_timestep.extend(pixels_in_circle)
@@ -856,12 +900,15 @@ def iterate_measure(
                             "position": [int(position_index)],
                             "timepoint": [timepoint_index],
                             "z_level": [zstack_index],
-                            #"no_GUVs": [len(measurement_circles)],
+                            "no_GUVs": [len(measurement_circles)],
                             "average": [np.mean(pixels_in_circle)],
+                            "background": [outside_intensity],
                             "median": [np.median(pixels_in_circle)],
                             "min": [np.min(pixels_in_circle)],
                             "max": [np.max(pixels_in_circle)],
                             "stdev": [np.std(pixels_in_circle)],
+                            "intensity_bg_corr": [np.mean(pixels_per_timestep)-outside_intensity],
+                            "intensity_inside_rel": [outside_intensity/np.mean(pixels_per_timestep)]
                         }
                     )
                     print("new position saved")
@@ -884,10 +931,13 @@ def iterate_measure(
                     "z_level": ['averaged'],
                     #"no_GUVs": [len(measurement_circles)],
                     "average": [np.mean(pixels_per_timestep)],
+                    "background": [outside_intensity],
                     "median": [np.median(pixels_per_timestep)],
                     #"min": [np.min(pixels_per_timestep)],
                     #"max": [np.max(pixels_per_timestep)],
                     "stdev": [np.std(pixels_per_timestep)],
+                    "intensity_bg_corr": [np.mean(pixels_per_timestep)-outside_intensity],
+                    "intensity_inside_rel": [np.mean(pixels_per_timestep)/outside_intensity]
                 }
             )
             print('new position saved')
