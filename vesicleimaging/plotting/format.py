@@ -22,10 +22,6 @@ def formatLH(figsizex=2, figsizey=2, frame=False, fontsize=12):
 
 def plotProps():
     # todo find out how to implement this in a standard template
-    boxprops = dict(linewidth=1)
-    medianprops = dict(linewidth=2, color="royalblue")
-    flierprops = dict(markersize=2)
-    whiskerprops = dict(color="black")
 
     PROPS = {
     "boxprops": {"facecolor": "none", "edgecolor": "black", "linewidth":1},
