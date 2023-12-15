@@ -8,6 +8,7 @@ from .file_handling import *
 from .image_operations import *
 from .image_analysis import *
 from vesicleimaging.plotting.format import *
+from vesicleimaging.plotting.fcs import *
 from .frap import *
 from .image_info import *
 from .czi_processing import *
