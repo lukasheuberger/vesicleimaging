@@ -612,7 +612,7 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
     # print(f'zstack_img.shape: {zstack_img.shape}')
 
     average_per_circle = []
-    # pixels_in_circle_list = []
+    pixels_in_circle_array = []
     # print(measurement_circles)
 
     bg_intensity = calculate_average_outside_circles(zstack_img, measurement_circles)
@@ -784,8 +784,24 @@ def measure_circle_intensity(
         results_df.to_excel("analysis.xlsx")
         print("excel saved") # todo change filename
 
+    results_df = results_df.reset_index(drop=True)
+
     return results_df  # , intensity_per_circle
 
+#todo when no circles, this is the error: (LH23-23)
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/fromnumeric.py:3440: RuntimeWarning: Mean of empty slice.
+#   return _methods._mean(a, axis=axis, dtype=dtype,
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/_methods.py:189: RuntimeWarning: invalid value encountered in double_scalars
+#   ret = ret.dtype.type(ret / rcount)
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/_methods.py:262: RuntimeWarning: Degrees of freedom <= 0 for slice
+#   ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/_methods.py:222: RuntimeWarning: invalid value encountered in true_divide
+#   arrmean = um.true_divide(arrmean, div, out=arrmean, casting='unsafe',
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/_methods.py:254: RuntimeWarning: invalid value encountered in double_scalars
+#   ret = ret.dtype.type(ret / rcount)
+#   -> fix this
+
+#todo , noGUVs, min and max is NaN
 
 def iterate_measure(
     img: list,
