@@ -111,7 +111,7 @@ def barplot_annotate_brackets(
         # Display the text in the middle of the bar
         # plt.text(*mid, text, **kwargs)
 
-
+# todo fix that if needs two values for height
 # todo cleanup
 # todo consolidate cases
 
