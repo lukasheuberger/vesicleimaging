@@ -48,7 +48,17 @@ def get_channels(add_metadata):
 
     if isinstance(add_metadata_detectors, list) is False:
         # airyscan has non-list metadata here, so convert to list
+        print('- airyscan image -')
         add_metadata_detectors = [add_metadata_detectors]
+        tracks = add_metadata[0]['Experiment'] \
+                ['ExperimentBlocks']['AcquisitionBlock']['MultiTrackSetup']['TrackSetup']#['Attenuator']#['Wavelength']
+        # Experiment | AcquisitionBlock | MultiTrackSetup | TrackSetup | Attenuator | Wavelength  # 1	4.8800000000000003e-007
+        for track in tracks:
+            laserline = track['Attenuators']['Attenuator']['Wavelength']
+            laserline = round(float(laserline)*10e8)
+            channel_names.append(laserline)
+
+    # TODO fix that part below is only in non-airyscan case
 
     # channels of all images are the same so image 0 taken
     for index, channel in enumerate(add_metadata_detectors):
