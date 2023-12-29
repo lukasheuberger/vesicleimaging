@@ -12,7 +12,7 @@ def formatLH(figsizex=2, figsizey=2, frame=False, fontsize=12):
     mpl.rcParams['figure.figsize'] = 5.25 / figsizex, 4.75 / figsizey
     mpl.rcParams['axes.labelpad'] = 10
     mpl.rcParams['figure.autolayout'] = True
-    mpl.rcParams['legend.fontsize'] = 12
+    mpl.rcParams['legend.fontsize'] = 10
     mpl.rcParams['patch.antialiased'] = True
     mpl.rcParams['axes.labelsize'] = 'x-large'
     mpl.rcParams['axes.titlesize'] = 'x-large'

@@ -4,7 +4,7 @@ from fcsfiles import ConfoCor3Fcs
 import pandas as pd
 
 
-def get_fcs_run_data(fcs_file):
+def get_fcs_run_data(fcs_file, average=False):
     """
     The get_fcs_run_data function takes a single FCS file and returns a pandas DataFrame with the following columns:
         - Columns 1-n are the individual runs (incl. average)
@@ -34,7 +34,8 @@ def get_fcs_run_data(fcs_file):
             data.append(rep_data[1])
 
         df[index+1] = data  # make it not zero indexed
-    df['average'] = df.mean(axis=1)
-    df['stddev'] = df.std(axis=1)
+    if average:
+        df['average'] = df.mean(axis=1)
+        df['stddev'] = df.std(axis=1)
 
     return df
