@@ -7,7 +7,8 @@ def formatLH(figsizex=2, figsizey=2, frame=False, fontsize=12):
     import matplotlib as mpl
     mpl.rcParams['legend.frameon'] = False
     mpl.rcParams['figure.frameon'] = frame
-    mpl.rcParams['font.sans-serif'] = 'Gill Sans'
+    #mpl.rcParams['font.sans-serif'] = 'Gill Sans'
+    mpl.rcParams['font.sans-serif'] = 'Futura'
     mpl.rcParams['font.size'] = fontsize
     mpl.rcParams['figure.figsize'] = 5.25 / figsizex, 4.75 / figsizey
     mpl.rcParams['axes.labelpad'] = 10
