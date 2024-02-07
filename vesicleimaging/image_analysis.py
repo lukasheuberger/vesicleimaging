@@ -11,10 +11,31 @@ import pandas as pd
 from .image_operations import convert8bit, disp_scaling
 
 
-#todo make it also plot images when no circles are found
+def are_centers_close(circle1, circle2, threshold=10):
+    # Calculate the distance between the centers of two circles
+    x1, y1, _ = circle1
+    x2, y2, _ = circle2
+    distance = np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
+    return distance <= threshold
+
+def filter_circles(circles, keep_smaller=True):
+    filtered = []
+    for circle in circles:
+        close = False
+        for other in filtered:
+            if are_centers_close(circle, other):
+                close = True
+                if keep_smaller and (circle[2] < other[2]):
+                    filtered.remove(other)
+                    filtered.append(circle)
+                break
+        if not close:
+            filtered.append(circle)
+    return filtered
+
 
 def process_image(
-    zstack_img, output_img, minmax, param1, param2, plot=False, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
+    zstack_img, output_img, minmax, initial_param1, initial_param2, detecton='Gauss', plot=False, debug=False, method=cv2.HOUGH_GRADIENT_ALT, hough_saving=False):
     """
     The process_image function takes in a zstack image, an output image,
     the channel to detect on (0-2), the min and max radius of the circles
@@ -36,46 +57,148 @@ def process_image(
     Returns:
         The circles, the output image and a list of all circles
     """
+    # print('detecton: ', detecton)
 
     #if dp_val is None:
     if method == cv2.HOUGH_GRADIENT_ALT:
         dp_val = 1.5
     elif method == cv2.HOUGH_GRADIENT:
         # print('method is HOUGH_GRADIENT')
-        dp_val = 2
+        dp_val = 1.5
     # print(f"dp_val: {dp_val}")
 
-    dp_val=1.5
+    # # Apply Gaussian blur to reduce noise
+    # gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 2)  # alternative 900 at the end instead of 2
+    #
+    # # todo make this optional: if threshold:
+    # _, im_bw = cv2.threshold(gray_blurred, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    # # plt.imshow(im_bw)
+    #
+    # # Adaptive Thresholding (doesn't really work)
+    # #im_bw = cv2.adaptiveThreshold(gray_blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+    #
+    # # Edge Detection (optional, uncomment if needed)
+    # # edges = cv2.Canny(gray_blurred, 10, 200)
+    # # im_edges = np.uint8(edges)
+    #
+    # # fig, (ax1, ax2, ax3) = plt.subplots(1, 3) # todo put these next to output image
+    # # ax1.imshow(gray_blurred)
+    # # ax2.imshow(im_edges)
+    # # ax3.imshow(im_bw)
+    #
+    # # print(f'output_img.shape:{output_img.shape}')
+    # circle = cv2.HoughCircles(
+    #     im_bw,
+    #     method,
+    #     dp=dp_val,
+    #     minDist=minmax[1],
+    #     minRadius=minmax[0],
+    #     maxRadius=minmax[1],
+    #     param1=param1,
+    #     param2=param2,
+    # )
 
-    # Apply Gaussian blur to reduce noise
-    gray_blurred = cv2.GaussianBlur(zstack_img, (9, 9), 1.5)
-    # plt.imshow(gray_blurred)
-    # print(f'output_img.shape:{output_img.shape}')
-    circle = cv2.HoughCircles(
-        gray_blurred,
-        method,
-        # cv2.HOUGH_GRADIENT_ALT,  # alternative: HOUGH_GRADIENT
-        dp=dp_val,
-        minDist=minmax[1] / 2,
-        minRadius=minmax[0],
-        maxRadius=minmax[1],
-        param1=param1,
-        param2=param2,
-    )
+    def detect_circles(param1, param2):
+        # Function to detect circles with given parameters
+        # gray_blurred = cv2.GaussianBlur(zstack_img.astype('uint8'), (0,0), 2) # alternative (9,9), 2
+        image_GaussBlur = cv2.GaussianBlur(zstack_img, (0,0), 2) # alternative (9,9), 2
+        # gray_blurred = gray_blurred.astype("uint8")
+        retval, image_thresholded = cv2.threshold(image_GaussBlur, 100, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+
+        # print("retval: ", retval)
+        # print('mean pixel intensity: ', np.mean(zstack_img))
+        # print('mean pixel intensity: ', np.mean(im_bw))
+
+        # Edge Detection (optional, uncomment if needed)
+        image_edges = cv2.Canny(image_thresholded, 200,255)
+        #edges2 = cv2.Canny(gray_blurred, 1,150)
+        #edges3 = cv2.Canny(im_bw, 50,150)
+        # im_edges = np.uint8(edges)
+
+        if debug:
+            fig, [(ax1, ax2), (ax3, ax4)] = plt.subplots(2, 2)
+            ax1.set_title('original')
+            ax1.imshow(zstack_img, cmap='viridis')
+            ax2.set_title('GaussianBlur')
+            ax2.imshow(image_GaussBlur, cmap='viridis')
+            ax3.set_title('threshold')
+            ax3.imshow(image_thresholded, cmap='viridis')
+            ax4.set_title('edges')
+            ax4.imshow(image_edges, cmap='viridis')
+            ax1.set_axis_off()
+            ax2.set_axis_off()
+            ax3.set_axis_off()
+            ax4.set_axis_off()
+            plt.show()
+
+        #todo make that this is only printed once
+        if detecton == 'Gauss':
+            # print('detect on GaussianBlur')
+            img_to_detect_on = image_GaussBlur
+        elif detecton == 'original':
+            # print('detect on original')
+            img_to_detect_on = zstack_img
+        elif detecton == 'threshold':
+            # print('detect on threshold')
+            img_to_detect_on = image_thresholded
+        elif detecton == 'edges':
+            # print('detect on edges')
+            img_to_detect_on = image_edges
+        else:
+            print('unknown detection method, please choose between original, Gauss, threshold and edges')
+
+        # gray_blurred = (gray_blurred / 256).astype("uint8")
+        return cv2.HoughCircles(img_to_detect_on, method, 1.5, minDist=minmax[1], minRadius=minmax[0], maxRadius=minmax[1], param1=param1, param2=param2)
+
+    # Try initial detection
+    circle = detect_circles(initial_param1, initial_param2)
+
+    optimization = False #todo make outside changeable
+    #todo make for both detection methods (HOUGH_GRADIENT_ALT and HOUGH_GRADIENT)
+    #todo somehow combine with next statement. good test: 23-79
+
+    if circle is None and optimization:
+    # if optimization:
+
+        # todo fix this, doesn't stop when circle is found or end is reached
+        # If no circles detected, start adjusting parameters
+        # if circle is None:
+        print('-------------------- no circles detected, trying to adjust params')
+        for param1 in range(400, 1, -10):
+            print(f"param1: {param1}")
+            circle = detect_circles(param1, initial_param2)
+            if circle is not None:
+                break
+                # todo some message when nothing found
+
+            # If still no circles, adjust param2
+            # if circle is None:
+            #     param2 = initial_param2
+            #     print(f"no circles detected, adjusting param2: {param2}")
+            #     while param2 > 0.5 and circle is None:
+            #         param2 -= 0.1
+            #         for param1 in range(3, 301, 10):
+            #             circle = detect_circles(param1, param2)
+            #             print(f"param1: {param1}, param2: {param2}")
+            #             if circle is not None:
+            #                 print(f'----------------> new params found: {param1}, {param2}')
+            #                 break
+
+
     # print(circle)
     if circle is not None:
         # Round off the (x, y) coordinates and radius to integers
-        circle = np.round(circle[0, :]).astype(int)
+        circle = np.round(circle[0, :]).astype(np.int32)
+
+        # Filter circles to remove overlapping circles
+        # circle = filter_circles(circle, keep_smaller=True) #todo needs fixing
 
         if plot is True or hough_saving is True:
             for (x, y, radius) in circle:
                 # Draw the circle on the output image
                 cv2.circle(output_img, (x, y), radius, (255, 255, 255), 2)
-
                 # Draw a centered rectangle at the center of the circle
-                cv2.rectangle(
-                    output_img, (x - 5, y - 5), (x + 5, y + 5), (255, 255, 255), -1
-                )
+                cv2.rectangle(output_img, (x - 5, y - 5), (x + 5, y + 5), (255, 255, 255), -1)
 
         return circle, output_img
     else:
@@ -90,11 +213,12 @@ def detect_circles(
     minmax: list,
     display_channel: int,
     detection_channel: int,
-    plot: bool = True,
+    plot: bool = False,
+    debug: bool = False,
     return_image: bool = False,
     hough_saving: bool = False,
-    debug: bool = False,
     method: str = cv2.HOUGH_GRADIENT_ALT,
+    detecton: str = 'Gauss',
 ):
     """
     The detect_circles function takes a list of images and returns
@@ -131,7 +255,7 @@ def detect_circles(
     print("@param2: circle 'perfectness' measure. The closer it to 1, the better "
           "shaped circles algorithm selects. In most cases 0.9 should be fine")
     print("-------------------------")
-    print(" ")
+    print(" ") #todo change this based on the method
 
     if isinstance(image_data, list) is False:
         raise ValueError("image_data must be a list")
@@ -149,10 +273,11 @@ def detect_circles(
         display_channel,
         minmax,
         plot,
-        hough_saving,
         debug,
+        hough_saving,
         detection_channel,
-        method
+        method,
+        detecton
     )
 
     for index, img in enumerate(image_data):
@@ -163,25 +288,32 @@ def detect_circles(
         print(f"file {index + 1} ({filename}) is being processed...")
 
         if img.dtype == "uint16":
-            img = convert8bit(img)
+            # img = convert8bit(img)
+            # img = (img / 256).astype("uint8")
+            img = (img/256).astype('uint8')
 
         # print(f'img.shape: {img.shape}')
 
         if len(img.shape) == 5:
-            print("5dim, only one position")
+            # print("5dim, only one position")
 
             # detection_img = img[detection_channel]
             # print(f'detection_img.shape: {detection_img.shape}')
             # directly iterate through timepoints, zstack
+            # test = img[detection_channel][0][0]
+            # print(np.max(test))
+            # plt.imshow(test, cmap="plasma")
+            # plt.show()
 
             timepoint_circles = iterate_circles(*args, index, img)
             # print([timepoint_circles])
+
 
             circles.append([timepoint_circles])
             # put in brackets to make same form as if it has positions, just with a one first
         elif len(img.shape) == 6:
             print("6dim, multiple positions")
-            print(f"img.shape:{img.shape}")
+            # print(f"img.shape:{img.shape}")
             # iterate through positions first, then timepoints & zstack
 
             position_circles = []
@@ -213,10 +345,11 @@ def iterate_circles(
     display_channel,
     minmax,
     plot,
-    hough_saving,
     debug,
+    hough_saving,
     detection_channel,
     method,
+    detecton,
     index,
     img,
     position_index=0,
@@ -235,13 +368,18 @@ def iterate_circles(
         minmax: Set the minimum and maximum values for the
         plot: Plot the image with the detected circles
         hough_saving: Save the images with the detected circles
-        debug: Print the circles detected in each z-stack
+        debug:
         detection_channel: channel index where circles should be detected
         position_index: Select the position index of a multi-position image
 
     Returns:
         A list of lists of circles (x, y, r)
     """
+
+    # test=img[detection_channel][0][0]
+    # plt.imshow(test, cmap='plasma')
+    # plt.show()
+    # print(f'detection channel: %s' % detection_channel)
 
     detection_img = img[detection_channel]
 
@@ -269,8 +407,10 @@ def iterate_circles(
 
             # print(f'output_img.shape: {output_img.shape}')
 
+            # plt.imshow(zstack_img, cmap='viridis')
+
             circle, output_img = process_image(
-                zstack_img, output_img, minmax, param1, param2, plot, method, hough_saving)
+                zstack_img, output_img, minmax, param1, param2, detecton, plot, debug, method, hough_saving)
             # print(circle)
             # print(f'output_img.shape: {output_img.shape}')
 
@@ -285,8 +425,8 @@ def iterate_circles(
                 print(f"{len(circle)} circle(s) found")
                 z_circles.append(circle)
 
-                if debug:
-                    print(f"z_circles: {z_circles}")
+                # if debug:
+                #    print(f"z_circles: {z_circles}")
 
                 if plot:
                     # print(f'output_img.shape: {output_img.shape}')
@@ -310,7 +450,8 @@ def iterate_circles(
 
                     # todo check if this works with this
                     # zero or needs try except to work
-                    temp_filename = image_metadata[index][0]["Filename"].replace(
+                    #temp_filename = image_metadata[index][0]["Filename"].replace(
+                    temp_filename = image_metadata[index]["Filename"].replace(
                         ".czi", ""
                     )
                     output_filename = "".join(
@@ -325,6 +466,7 @@ def iterate_circles(
                     plt.close()
             else:
                 print("no circles detected")
+                z_circles.append([]) # so no circles are not just left out, causing a framehshift
 
         timepoint_circles.append(z_circles)
     return timepoint_circles
@@ -413,9 +555,44 @@ def custom_meshgrid(x_min, x_max, y_min, y_max):
 
     return ys, xs
 
+# @njit # todo make numba compliant
+def calculate_average_outside_circles(zstack_img, measurement_circles, radius_distance=20, plot=False):
+    """
+    Calculate the average pixel intensity outside the specified circles.
 
-@njit
-def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_border):
+    Args:
+        zstack_img: The image to analyze
+        measurement_circles: List of circles (x, y, radius)
+
+    Returns:
+        The average intensity outside the circles
+    """
+
+    mask = np.zeros(zstack_img.shape[:2], dtype=bool)  # Assuming zstack_img is 2D
+
+    for circle in measurement_circles:
+        x_0, y_0, radius_px = circle
+        measurement_radius = radius_px + radius_distance
+        ys, xs = np.ogrid[:zstack_img.shape[0], :zstack_img.shape[1]]
+        mask |= (xs - x_0) ** 2 + (ys - y_0) ** 2 <= measurement_radius**2
+
+    # Invert the mask to select the area outside the circles
+    inverted_mask = ~mask
+
+    # Plot the mask
+    if plot:
+        plt.imshow(inverted_mask, cmap='gray')
+        plt.title("Mask of Area Outside Circles")
+        plt.show()
+
+    # Calculate the average intensity outside the circles
+    average_intensity_outside = np.mean(zstack_img[inverted_mask])
+
+    return average_intensity_outside
+    # todo adapt this masking approach to normal measurement too
+
+# @njit # todo make numba compliant again
+def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_border, subtract_bg=False):
     """
     The calculate_average_per_circle function takes a zstack image and a list of circles,
     and returns the average pixel intensity per circle. The function also returns an array
@@ -435,8 +612,11 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
     # print(f'zstack_img.shape: {zstack_img.shape}')
 
     average_per_circle = []
-    # pixels_in_circle_list = []
+    pixels_in_circle_array = []
     # print(measurement_circles)
+
+    bg_intensity = calculate_average_outside_circles(zstack_img, measurement_circles)
+    # print(f'bg_intensity: {bg_intensity}')
 
     for circle in measurement_circles:
         # print(f'circle: {circle}')
@@ -470,6 +650,7 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
         pixels_in_circle_array = np.empty_like(
             masked_ys, dtype=zstack_img.dtype
         )  # Renamed variable
+
         # pixels_in_circle = np.empty_like(masked_ys, dtype=zstack_img.dtype)
         for i in range(masked_ys.size):
             pixels_in_circle_array[i] = zstack_img[masked_ys[i], masked_xs[i]]
@@ -478,7 +659,12 @@ def calculate_average_per_circle(zstack_img, measurement_circles, distance_from_
         # average_per_circle.append(np.mean(pixels_in_circle))
         average_per_circle.append(np.mean(pixels_in_circle_array))
 
-    return average_per_circle, pixels_in_circle_array
+    #subtract_bg = True
+    #if subtract_bg:
+    #    average_per_circle = bg_intensity-average_per_circle
+    #    print(average_per_circle)
+
+    return average_per_circle, pixels_in_circle_array, bg_intensity
 
 
 def measure_circle_intensity(
@@ -596,10 +782,26 @@ def measure_circle_intensity(
 
     if excel_saving:
         results_df.to_excel("analysis.xlsx")
-        print("excel saved")
+        print("excel saved") # todo change filename
+
+    results_df = results_df.reset_index(drop=True)
 
     return results_df  # , intensity_per_circle
 
+#todo when no circles, this is the error: (LH23-23)
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/fromnumeric.py:3440: RuntimeWarning: Mean of empty slice.
+#   return _methods._mean(a, axis=axis, dtype=dtype,
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/_methods.py:189: RuntimeWarning: invalid value encountered in double_scalars
+#   ret = ret.dtype.type(ret / rcount)
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/_methods.py:262: RuntimeWarning: Degrees of freedom <= 0 for slice
+#   ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/_methods.py:222: RuntimeWarning: invalid value encountered in true_divide
+#   arrmean = um.true_divide(arrmean, div, out=arrmean, casting='unsafe',
+# /Users/heuberger/code/envs/py3vesicle/lib/python3.9/site-packages/numpy/core/_methods.py:254: RuntimeWarning: invalid value encountered in double_scalars
+#   ret = ret.dtype.type(ret / rcount)
+#   -> fix this
+
+#todo , noGUVs, min and max is NaN
 
 def iterate_measure(
     img: list,
@@ -688,18 +890,21 @@ def iterate_measure(
                     measurement_circles = circles[index][position_index][
                         timepoint_index
                     ][zstack_index]
+                else:
+                    measurement_circles = []
                 # print(f'measurement_circles: {measurement_circles}')
 
                 print(
                     f"- number of circles measured in this image: {len(measurement_circles)}"
                 )
 
-                average_per_circle, pixels_in_circle = calculate_average_per_circle(
+                average_per_circle, pixels_in_circle, outside_intensity = calculate_average_per_circle(
                     zstack_img, measurement_circles, distance_from_border
                 )
                 pixels_per_timestep.extend(pixels_in_circle)
 
                 if average_all_z is False:
+                    #todo this somehow messes up if the image is no a zstack
                     # print('each z-level will be evaluated separately')
                     # circles_per_image.append(average_per_circle)
                     # print(f'average_per_circle: {average_per_circle}')
@@ -713,17 +918,20 @@ def iterate_measure(
                             "z_level": [zstack_index],
                             "no_GUVs": [len(measurement_circles)],
                             "average": [np.mean(pixels_in_circle)],
+                            "background": [outside_intensity],
                             "median": [np.median(pixels_in_circle)],
                             "min": [np.min(pixels_in_circle)],
                             "max": [np.max(pixels_in_circle)],
                             "stdev": [np.std(pixels_in_circle)],
+                            "intensity_bg_corr": [np.mean(pixels_per_timestep)-outside_intensity],
+                            "intensity_inside_rel": [outside_intensity/np.mean(pixels_per_timestep)]
                         }
                     )
                     print("new position saved")
 
                     position_df = pd.concat([position_df, new_row], ignore_index=True)
 
-            except (TypeError, IndexError):
+            except (ValueError, TypeError, IndexError):
                  print("skipped this image, no circles found")
 
         if average_all_z:
@@ -737,12 +945,15 @@ def iterate_measure(
                     "position": [int(position_index)],
                     "timepoint": [timepoint_index],
                     "z_level": ['averaged'],
-                    "no_GUVs": [len(measurement_circles)],
+                    #"no_GUVs": [len(measurement_circles)],
                     "average": [np.mean(pixels_per_timestep)],
+                    "background": [outside_intensity],
                     "median": [np.median(pixels_per_timestep)],
-                    "min": [np.min(pixels_per_timestep)],
-                    "max": [np.max(pixels_per_timestep)],
+                    #"min": [np.min(pixels_per_timestep)],
+                    #"max": [np.max(pixels_per_timestep)],
                     "stdev": [np.std(pixels_per_timestep)],
+                    "intensity_bg_corr": [np.mean(pixels_per_timestep)-outside_intensity],
+                    "intensity_inside_rel": [np.mean(pixels_per_timestep)/outside_intensity]
                 }
             )
             print('new position saved')
@@ -766,8 +977,8 @@ def detect_circles_tif(
     plot=False,
     hough_saving=False,
     debug=False,
+    detecton='original'
 ):
-
     """
     The detect_circles_tif function takes in a list of image data, filenames,
     param_array (a list of parameters for the HoughCircles function),
@@ -788,11 +999,10 @@ def detect_circles_tif(
     Returns:
         A list of circles
     """
-
     circles = []
 
     for index, image in enumerate(image_data):
-        print(index)
+        # print(index)
         filename = filenames[index]
         print(f"file {index + 1} ({filename}) is being processed...")
 
@@ -801,7 +1011,7 @@ def detect_circles_tif(
 
         output_img = image.copy()
         circle, output_img = process_image(
-            image, output_img, minmax, param1, param2, plot
+            image, output_img, minmax, param1, param2, detecton, plot, debug
         )
 
         if circle is not None:

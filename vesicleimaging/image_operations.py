@@ -231,8 +231,8 @@ def circles_to_pandas(detected_circles: list, scaling_factor: float,  filenames:
                         # append the temporary dataframe to the main dataframe
                         circles_df = circles_df.append(temp_df)
 
-
     return circles_df
+
 
 def split_positions(image_data):
     """
