@@ -45,7 +45,7 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 MIT License
 -------
 
-Copyright (c) [2024] [Lukas Heuberger]
+Copyright (c) 2024 Lukas Heuberger
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
