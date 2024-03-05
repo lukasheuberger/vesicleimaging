@@ -39,6 +39,7 @@ def find_files(directory, file_ext='.czi', include_keyword=None, exclude_keyword
             if (
                 file.endswith(file_ext)
                 and not file.endswith(exclude_keyword + file_ext)
+                and not (exclude_keyword in file)
                 and (include_keyword is None or include_keyword in file)
             ):
                 if not file.startswith("._"):
