@@ -28,6 +28,8 @@ def find_files(directory, file_ext='.czi', include_keyword=None, exclude_keyword
         A list of file paths and a list of filenames
     """
 
+    # todo make possible to combine keyword and number_folders
+
     found_files = []
     filenames = []
     
